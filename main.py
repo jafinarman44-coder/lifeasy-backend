@@ -1,19 +1,17 @@
-from fastapi import FastAPI
-from database import Base, engine
-from auth import router as auth_router
+﻿from fastapi import FastAPI
 
-app = FastAPI(title="LIFEASY V30 PRO API")
-
-# DB init
-Base.metadata.create_all(bind=engine)
-
-# Routes
-app.include_router(auth_router, prefix="/api")
+app = FastAPI(title="LIFEASY LIVE API")
 
 @app.get("/")
 def home():
-    return {"message": "LIFEASY LIVE API RUNNING"}
+    return {"status": "LIVE API RUNNING"}
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.post("/api/login")
+def login(data: dict):
+    if data["tenant_id"] == "1001" and data["password"] == "123456":
+        return {"token": "demo_token"}
+    return {"error": "Invalid credentials"}
