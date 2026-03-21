@@ -41,3 +41,11 @@ def login(data: dict, db: Session = Depends(get_db)):
         "access_token": token,
         "tenant_id": user.tenant_id
     }
+
+@router.post("/send-otp")
+def send_otp():
+    return {"msg": "otp sent"}
+
+@router.post("/verify-otp")
+def verify():
+    return {"msg": "verified"}
