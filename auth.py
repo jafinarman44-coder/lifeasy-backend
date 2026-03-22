@@ -1,51 +1,55 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from database import SessionLocal
-from models import Tenant
-from jose import jwt
-import hashlib
-from datetime import datetime, timedelta
+from fastapi import APIRouter
+from pydantic import BaseModel
+import random
 
 router = APIRouter()
 
-SECRET = "lifeasy_secret_key"
-ALGORITHM = "HS256"
+# ====== MODELS ======
+class LoginRequest(BaseModel):
+    tenant_id: str
+    password: str
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+class OTPVerify(BaseModel):
+    tenant_id: str
+    otp: str
 
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
+# ====== FAKE DB ======
+users = {
+    "1001": {
+        "password": "123456",
+        "phone": "01700000000"
+    }
+}
 
-def verify_password(plain, hashed):
-    return hash_password(plain) == hashed
+otp_store = {}
 
-def create_token(data: dict):
-    data.update({"exp": datetime.utcnow() + timedelta(minutes=30)})
-    return jwt.encode(data, SECRET, algorithm=ALGORITHM)
-
+# ====== LOGIN ======
 @router.post("/login")
-def login(data: dict, db: Session = Depends(get_db)):
-    user = db.query(Tenant).filter(Tenant.tenant_id == data["tenant_id"]).first()
+def login(data: LoginRequest):
+    user = users.get(data.tenant_id)
 
-    if not user or not verify_password(data["password"], user.password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not user or user["password"] != data.password:
+        return {"status": "error", "message": "Invalid credentials"}
 
-    token = create_token({"sub": user.tenant_id})
+    otp = str(random.randint(100000, 999999))
+    otp_store[data.tenant_id] = otp
+
+    print("OTP:", otp)
 
     return {
-        "access_token": token,
-        "tenant_id": user.tenant_id
+        "status": "otp_sent",
+        "otp": otp  # 🔥 remove in real production
     }
 
-@router.post("/send-otp")
-def send_otp():
-    return {"msg": "otp sent"}
-
+# ====== VERIFY OTP ======
 @router.post("/verify-otp")
-def verify():
-    return {"msg": "verified"}
+def verify_otp(data: OTPVerify):
+    real_otp = otp_store.get(data.tenant_id)
+
+    if real_otp != data.otp:
+        return {"status": "error", "message": "Invalid OTP"}
+
+    return {
+        "status": "success",
+        "message": "Login successful"
+    }
