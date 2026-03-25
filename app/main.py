@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers.auth import router as auth_router
 from app.routers import tenant
+from app.routers import otp
 
 app = FastAPI(
     title="LIFEASY SAAS API",
@@ -27,3 +28,4 @@ def health():
 # Include routers
 app.include_router(auth_router, prefix="/api")
 app.include_router(tenant.router)
+app.include_router(otp.router)
