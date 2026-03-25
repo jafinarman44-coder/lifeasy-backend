@@ -1,54 +1,64 @@
 from fastapi import APIRouter
-from datetime import datetime, timedelta
 import random
+from fastapi_mail import MessageSchema
+from app.core.email_config import fm
 
 router = APIRouter(prefix="/api/otp", tags=["OTP"])
 
 # In-memory store (later DB connect হবে)
-OTP_STORE = {}
+OTP_STORAGE = {}
 
-def generate_otp():
-    return str(random.randint(100000, 999999))
+# Tenant email mapping (later DB থেকে আসবে)
+TENANT_EMAIL = {
+    "1001": "your_email_here@gmail.com"
+}
 
 @router.post("/send")
-def send_otp(request: dict):
-    tenant_id = request.get("tenant_id")
+async def send_otp(data: dict):
+    tenant_id = data.get("tenant_id")
+    password = data.get("password")
 
     if not tenant_id:
         return {"status": "error", "message": "Tenant ID required"}
 
-    otp = generate_otp()
-    expiry = datetime.utcnow() + timedelta(minutes=2)
+    # Check if tenant exists in email database
+    if tenant_id not in TENANT_EMAIL:
+        return {"status": "error", "message": "Email not found for this tenant"}
 
-    OTP_STORE[tenant_id] = {
-        "otp": otp,
-        "expiry": expiry
-    }
+    otp = random.randint(100000, 999999)
+    OTP_STORAGE[tenant_id] = otp
 
-    # 🔥 SMS integration later (bKash/Ssl/SMS gateway)
-    print("OTP SENT:", otp)
+    # Send email with OTP
+    try:
+        message = MessageSchema(
+            subject="Your LIFEASY Login OTP",
+            recipients=[TENANT_EMAIL[tenant_id]],
+            body=f"Your LIFEASY Login OTP is: {otp}\n\nThis OTP is valid for single use.",
+            subtype="plain"
+        )
 
-    return {
-        "status": "success",
-        "message": "OTP sent successfully",
-        "otp": otp      # ❗ Development mode only — flutter এর জন্য
-    }
+        await fm.send_message(message)
+        
+        print(f"OTP sent to {TENANT_EMAIL[tenant_id]}: {otp}")
+        
+        return {
+            "status": "success",
+            "message": "OTP sent to your email",
+            "email": TENANT_EMAIL[tenant_id]  # For frontend display
+        }
+    except Exception as e:
+        print(f"Email send error: {str(e)}")
+        return {"status": "error", "message": f"Failed to send email: {str(e)}"}
 
 @router.post("/verify")
-def verify_otp(request: dict):
-    tenant_id = request.get("tenant_id")
-    otp = request.get("otp")
+def verify_otp(data: dict):
+    tenant_id = data.get("tenant_id")
+    otp = data.get("otp")
 
-    if tenant_id not in OTP_STORE:
+    if tenant_id not in OTP_STORAGE:
         return {"status": "error", "message": "OTP not generated"}
 
-    saved_otp = OTP_STORE[tenant_id]["otp"]
-    expiry = OTP_STORE[tenant_id]["expiry"]
-
-    if datetime.utcnow() > expiry:
-        return {"status": "error", "message": "OTP expired"}
-
-    if otp != saved_otp:
+    if str(otp) != str(OTP_STORAGE[tenant_id]):
         return {"status": "error", "message": "Invalid OTP"}
 
     return {

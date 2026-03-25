@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import 'dashboard_screen.dart';
+import 'otp_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,47 +22,41 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final apiService = ApiService();
-      final result = await apiService.login(
+      final result = await ApiService.sendOtp(
         idController.text,
         passController.text,
       );
 
-      if (mounted) {
-        setState(() => _isLoading = false);
-        
-        if (result['status'] == 'success') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => DashboardScreen(
-                tenantId: result['tenant_id'],
-              ),
-            ),
-          );
-        } else {
-          setState(() {
-            _errorMessage = "User not registered. Please register first.";
-          });
-        }
-      }
-    } catch (e) {
-      if (mounted) {
+      setState(() => _isLoading = false);
+
+      if (result['status'] == 'success') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OTPScreen(tenantId: idController.text),
+          ),
+        );
+      } else {
         setState(() {
-          _isLoading = false;
-          _errorMessage = e.toString().replaceFirst('Exception: ', '');
+          _errorMessage = result['message'] ?? 'Login failed';
         });
       }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString();
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xff0f172a),
+      backgroundColor: const Color(0xff0f172a),
       body: Center(
         child: Container(
-          padding: EdgeInsets.all(25),
+          padding: const EdgeInsets.all(25),
+          width: 320,
           decoration: BoxDecoration(
             color: Colors.black54,
             borderRadius: BorderRadius.circular(20),
@@ -71,41 +65,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 color: Colors.blue.withOpacity(0.3),
                 blurRadius: 15,
                 spreadRadius: 2,
-              )
+              ),
             ],
           ),
-          width: 320,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Logo Image
-              Image.asset(
-                "assets/logo.png",
-                height: 70,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(
-                    Icons.apartment,
-                    size: 60,
-                    color: Colors.blueAccent,
-                  );
-                },
-              ),
+              Icon(Icons.apartment, size: 60, color: Colors.blueAccent),
               SizedBox(height: 15),
-              Text(
-                "LIFEASY",
-                style: TextStyle(
-                  fontSize: 30,
-                  color: Colors.blueAccent,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                "Smart Living Platform",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
-              ),
+              Text("LIFEASY",
+                  style: TextStyle(
+                      fontSize: 30,
+                      color: Colors.blueAccent,
+                      fontWeight: FontWeight.bold)),
               SizedBox(height: 30),
               TextField(
                 controller: idController,
@@ -116,14 +88,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   prefixIcon: Icon(Icons.person, color: Colors.blueAccent),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.blueAccent),
                   ),
                 ),
               ),
@@ -139,17 +103,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.blueAccent),
-                  ),
                 ),
               ),
-              SizedBox(height: 25),
+              SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -163,105 +119,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: _isLoading
                       ? CircularProgressIndicator(color: Colors.white)
-                      : Text("LOGIN", style: TextStyle(fontSize: 16, color: Colors.white)),
-                ),
-              ),
-              SizedBox(height: 10),
-              // Send OTP Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    try {
-                      final apiService = ApiService();
-                      await apiService.sendOTP(idController.text);
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("OTP Sent to ${idController.text}")),
-                        );
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to send OTP'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text("SEND OTP", style: TextStyle(fontSize: 14, color: Colors.white)),
-                ),
-              ),
-              SizedBox(height: 10),
-              // Register Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    try {
-                      final apiService = ApiService();
-                      await apiService.register(
-                        idController.text,
-                        passController.text,
-                        "1001",
-                      );
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("Registered Successfully!"),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Registration failed'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text("REGISTER", style: TextStyle(fontSize: 14, color: Colors.white)),
+                      : Text("LOGIN",
+                          style:
+                              TextStyle(fontSize: 16, color: Colors.white)),
                 ),
               ),
               if (_errorMessage != null) ...[
-                SizedBox(height: 15),
+                SizedBox(height: 12),
                 Text(
                   _errorMessage!,
-                  style: TextStyle(color: Colors.red, fontSize: 12),
                   textAlign: TextAlign.center,
-                ),
-              ],
+                  style: TextStyle(color: Colors.red, fontSize: 12),
+                )
+              ]
             ],
           ),
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    idController.dispose();
-    passController.dispose();
-    super.dispose();
   }
 }

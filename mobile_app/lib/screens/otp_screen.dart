@@ -1,59 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import 'dashboard_screen.dart';
 
 class OTPScreen extends StatefulWidget {
-  const OTPScreen({super.key});
+  final String tenantId;
+
+  const OTPScreen({super.key, required this.tenantId});
 
   @override
   State<OTPScreen> createState() => _OTPScreenState();
 }
 
 class _OTPScreenState extends State<OTPScreen> {
-  final phoneController = TextEditingController();
   final otpController = TextEditingController();
   bool _isLoading = false;
-  bool _otpSent = false;
   String? _errorMessage;
-
-  Future<void> _sendOTP() async {
-    if (phoneController.text.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please enter phone number';
-      });
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final apiService = ApiService();
-      final result = await apiService.sendOTP(phoneController.text);
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _otpSent = true;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('OTP sent successfully: ${result['otp']}'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = e.toString().replaceFirst('Exception: ', '');
-        });
-      }
-    }
-  }
 
   Future<void> _verifyOTP() async {
     if (otpController.text.isEmpty) {
@@ -69,33 +31,31 @@ class _OTPScreenState extends State<OTPScreen> {
     });
 
     try {
-      final apiService = ApiService();
-      final result = await apiService.verifyOTP(otpController.text);
+      final result =
+          await ApiService.verifyOtp(widget.tenantId, otpController.text);
 
-      if (mounted) {
-        setState(() => _isLoading = false);
-        
-        // Navigate to dashboard
-        Navigator.pushReplacement(
+      if (result['status'] == 'success') {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('tenant_id', widget.tenantId);
+
+        Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => DashboardScreen(token: 'otp_token')),
+          MaterialPageRoute(
+              builder: (_) => DashboardScreen(tenantId: widget.tenantId)),
+          (route) => false,
         );
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'OTP verified successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
+      } else {
         setState(() {
-          _isLoading = false;
-          _errorMessage = e.toString().replaceFirst('Exception: ', '');
+          _errorMessage = result['message'] ?? 'Invalid OTP';
         });
       }
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
     }
+
+    setState(() => _isLoading = false);
   }
 
   @override
@@ -103,140 +63,70 @@ class _OTPScreenState extends State<OTPScreen> {
     return Scaffold(
       backgroundColor: Color(0xff0f172a),
       appBar: AppBar(
-        title: Text('OTP Login'),
+        title: Text('Verify OTP'),
         backgroundColor: Colors.transparent,
-        elevation: 0,
+        automaticallyImplyLeading: false,
       ),
       body: Center(
         child: Container(
           padding: EdgeInsets.all(25),
+          width: 320,
           decoration: BoxDecoration(
             color: Colors.black54,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.blue.withOpacity(0.3),
-                blurRadius: 15,
-                spreadRadius: 2,
-              )
-            ],
           ),
-          width: 320,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.phone_android,
-                size: 60,
-                color: Colors.blueAccent,
-              ),
+              Icon(Icons.lock_clock, size: 60, color: Colors.blueAccent),
               SizedBox(height: 20),
-              Text(
-                "OTP Verification",
-                style: TextStyle(
-                  fontSize: 24,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 30),
+              Text("Enter OTP",
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold)),
+              SizedBox(height: 10),
+              Text("Sent to Tenant ${widget.tenantId}",
+                  style: TextStyle(color: Colors.grey)),
+              SizedBox(height: 20),
               TextField(
-                controller: phoneController,
-                enabled: !_otpSent,
+                controller: otpController,
                 style: TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  labelText: "Phone Number",
+                  labelText: "OTP",
                   labelStyle: TextStyle(color: Colors.grey),
-                  prefixIcon: Icon(Icons.phone, color: Colors.blueAccent),
+                  prefixIcon: Icon(Icons.key, color: Colors.blueAccent),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.blueAccent),
-                  ),
+                      borderRadius: BorderRadius.circular(12)),
                 ),
-                keyboardType: TextInputType.phone,
+                keyboardType: TextInputType.number,
               ),
-              SizedBox(height: 15),
-              if (_otpSent) ...[
-                TextField(
-                  controller: otpController,
-                  style: TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: "Enter OTP",
-                    labelStyle: TextStyle(color: Colors.grey),
-                    prefixIcon: Icon(Icons.lock, color: Colors.blueAccent),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.blueAccent),
-                    ),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                SizedBox(height: 15),
-              ],
+              SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : (_otpSent ? _verifyOTP : _sendOTP),
+                  onPressed: _isLoading ? null : _verifyOTP,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueAccent,
                     padding: EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                   ),
                   child: _isLoading
                       ? CircularProgressIndicator(color: Colors.white)
-                      : Text(_otpSent ? "VERIFY" : "SEND OTP", 
-                          style: TextStyle(fontSize: 16, color: Colors.white)),
+                      : Text("VERIFY OTP",
+                          style:
+                              TextStyle(color: Colors.white, fontSize: 16)),
                 ),
               ),
               if (_errorMessage != null) ...[
-                SizedBox(height: 15),
-                Text(
-                  _errorMessage!,
-                  style: TextStyle(color: Colors.red, fontSize: 12),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-              if (_otpSent) ...[
-                SizedBox(height: 15),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _otpSent = false;
-                      otpController.clear();
-                    });
-                  },
-                  child: Text("Change Number", 
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-              ],
+                SizedBox(height: 12),
+                Text(_errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.red, fontSize: 12)),
+              ]
             ],
           ),
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    phoneController.dispose();
-    otpController.dispose();
-    super.dispose();
   }
 }
