@@ -16,15 +16,15 @@ class ApiService {
     };
   }
   
-  // Login - Phone & Password Authentication
-  Future<Map<String, dynamic>> login(String phone, String password) async {
+  // Login - Tenant ID & Password Authentication
+  Future<Map<String, dynamic>> login(String tenantId, String password) async {
     try {
-      print('🔐 LOGIN REQUEST: $phone');
+      print('🔐 LOGIN REQUEST: Tenant ID = $tenantId');
       final response = await http.post(
         Uri.parse('$baseUrl/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'phone': phone,
+          'tenant_id': tenantId,
           'password': password,
         }),
       );
