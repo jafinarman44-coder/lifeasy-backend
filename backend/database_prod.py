@@ -34,6 +34,9 @@ else:
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+# Import models AFTER Base is defined (required for proper initialization)
+from models import Tenant, OTPCode, Bill, Payment, Notification, ChatRoom, ChatParticipant, ChatMessage, BlockedUser, CallLog, ChatPresence, ChatTyping, ChatUnread
+
 
 def get_db():
     """Database session dependency"""

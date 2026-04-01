@@ -1,5 +1,5 @@
-# LIFEASY V30 PRO - Backend Dependencies
-# Production-ready FastAPI Application
+# LIFEASY V27+ PHASE 6 - Backend Dependencies
+# Production-ready FastAPI Application with OTP, Chat, Notifications & Calling
 
 # Web Framework
 fastapi==0.135.1
