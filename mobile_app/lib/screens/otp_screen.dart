@@ -5,8 +5,9 @@ import 'dashboard_screen.dart';
 
 class OTPScreen extends StatefulWidget {
   final String tenantId;
+  final String email;
 
-  const OTPScreen({super.key, required this.tenantId});
+  const OTPScreen({super.key, required this.tenantId, required this.email});
 
   @override
   State<OTPScreen> createState() => _OTPScreenState();
@@ -88,6 +89,11 @@ class _OTPScreenState extends State<OTPScreen> {
               SizedBox(height: 10),
               Text("Sent to Tenant ${widget.tenantId}",
                   style: TextStyle(color: Colors.grey)),
+              if (widget.email.isNotEmpty) ...[
+                SizedBox(height: 5),
+                Text(widget.email,
+                    style: TextStyle(color: Colors.blueAccent, fontSize: 14)),
+              ],
               SizedBox(height: 20),
               TextField(
                 controller: otpController,

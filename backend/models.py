@@ -25,12 +25,15 @@ class Tenant(Base):
     phone = Column(String, nullable=False)
     flat = Column(String, nullable=False)
     building = Column(String, nullable=False)
-    password = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True)  # For OTP login
+    password = Column(String, nullable=True)  # Set after OTP verification
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
     bills = relationship("Bill", back_populates="tenant", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="tenant", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="tenant", cascade="all, delete-orphan")
+    chat_participants = relationship("ChatParticipant", back_populates="tenant", cascade="all, delete-orphan")
 
 
 class OTPCode(Base):
@@ -38,13 +41,11 @@ class OTPCode(Base):
     __tablename__ = "otp_codes"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(String, ForeignKey("tenants.tenant_id"), nullable=False)
+    email = Column(String, nullable=False, index=True)  # Email for OTP
     otp = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    is_used = Column(Integer, default=0)  # 0=unused, 1=used
-
-    # Relationship
-    tenant = relationship("Tenant", backref="otp_codes")
+    is_used = Column(Boolean, default=False)  # Changed to Boolean
+    expires_at = Column(DateTime, nullable=True)  # Optional expiration
 
 
 class Bill(Base):
@@ -92,7 +93,7 @@ class Notification(Base):
     message = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    tenant = relationship("Tenant")
+    tenant = relationship("Tenant", back_populates="notifications")
 
 
 class ChatRoom(Base):

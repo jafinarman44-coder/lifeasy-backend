@@ -60,7 +60,7 @@ app.include_router(chat_router)  # /api/chat/*
 app.include_router(call_router)  # /api/calls/*
 
 # Phase 6 V2 Routers (NEW - Complete Chat & Call System)
-app.include_router(auth_v2_router, prefix="/api/auth/v2", tags=["Auth V2"])  # /api/auth/v2/*
+app.include_router(auth_v2_router)  # /api/auth/v2/* (prefix already in router)
 app.include_router(chat_v2_router)  # /api/chat/v2/* (WebSocket + REST)
 app.include_router(chat_block_router)  # /api/chat/block/*
 app.include_router(chat_call_router)  # /api/chat/call/*

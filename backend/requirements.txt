@@ -28,6 +28,10 @@ pydantic==2.12.5
 pydantic-settings==2.10.1
 python-dotenv==1.1.0
 
+# Email Validation (Required for Render)
+email-validator==2.1.0.post1
+pydantic[email]
+
 # Production server management
 gunicorn==23.0.0
 

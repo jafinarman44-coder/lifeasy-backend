@@ -10,8 +10,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final idController = TextEditingController(text: '1001');
-  final passController = TextEditingController(text: '123456');
+  final idController = TextEditingController();
+  final passController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -30,10 +30,16 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isLoading = false);
 
       if (result['status'] == 'success') {
+        // Extract email from response (default to empty if not present)
+        final email = result['email'] ?? '';
+        
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => OTPScreen(tenantId: idController.text),
+            builder: (_) => OTPScreen(
+              tenantId: idController.text,
+              email: email,
+            ),
           ),
         );
       } else {

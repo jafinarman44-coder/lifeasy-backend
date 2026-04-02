@@ -10,36 +10,16 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 import random
 import hashlib
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from jose import jwt
 import os
+from utils.email_service import send_otp_email
 
 router = APIRouter(prefix="/api/auth/v2", tags=["Authentication V2"])
 
 # Configuration
 SECRET_KEY_V2 = "lifeasy_phase6_v2_secret_key_2026_enterprise"
 ALGORITHM_V2 = "HS256"
-SMTP_EMAIL = os.getenv("SMTP_EMAIL", "majadar1din@gmail.com")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")  # App password
-
-
-def send_email(to_email, subject, body):
-    """Simple email sender function"""
-    msg = MIMEMultipart()
-    msg["From"] = SMTP_EMAIL
-    msg["To"] = to_email
-    msg["Subject"] = subject
-
-    msg.attach(MIMEText(body, "plain"))
-
-    server = smtplib.SMTP("smtp.gmail.com", 587)
-    server.starttls()
-    server.login(SMTP_EMAIL, SMTP_PASSWORD)
-    server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
-    server.quit()
 
 
 # ==================== PYDANTIC MODELS ====================
@@ -126,19 +106,14 @@ def register_request(data: RegisterRequestModel, db: Session = Depends(get_db)):
     db.add(record)
     db.commit()
 
-    # 4. Send email
-    try:
-        send_email(
-            to_email=data.email,
-            subject="Your LIFEASY OTP Code",
-            body=f"Your verification OTP is: {otp}"
+    # 4. Send email using new email service
+    success = send_otp_email(data.email, str(otp))
+    
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send OTP email"
         )
-    except Exception as e:
-        print("Email sending error:", e)
-        return {
-            "status": "error",
-            "message": "Failed to send OTP"
-        }
 
     return {
         "status": "success",
