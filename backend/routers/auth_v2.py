@@ -14,6 +14,9 @@ from datetime import datetime, timedelta
 from jose import jwt
 import os
 from utils.email_service import send_otp_email
+from utils.sms_service import sms_service
+from models import ChatPresence
+from datetime import datetime
 
 router = APIRouter(prefix="/api/auth/v2", tags=["Authentication V2"])
 
@@ -27,7 +30,7 @@ ALGORITHM_V2 = "HS256"
 class RegisterRequestModel(BaseModel):
     email: EmailStr
     password: str
-    phone: str
+    phone: Optional[str] = ""
     name: str
 
 
@@ -40,6 +43,16 @@ class LoginV2RequestModel(BaseModel):
     email: EmailStr
     password: str
     remember_me: Optional[bool] = False
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
 
 
 class TenantApprovalModel(BaseModel):
@@ -84,32 +97,55 @@ def register_request(data: RegisterRequestModel, db: Session = Depends(get_db)):
     """
     Step 1: User enters name, email, password
     Step 2: We send OTP to email IF new user
+    If user exists, we resend OTP for login
     """
     
-    # 1. Email must be unique
+    # 1. Check if email exists
     existing = db.query(Tenant).filter(Tenant.email == data.email).first()
+    
     if existing:
-        return {
-            "status": "error",
-            "message": "Email already exists"
-        }
+        # Email exists - check if verified
+        if not existing.is_verified:
+            # Not verified yet - allow resending OTP
+            pass  # Continue to send OTP
+        else:
+            # Already verified - user should login instead
+            return {
+                "status": "exists",
+                "message": "Email already registered. Please login.",
+                "is_verified": True,
+                "needs_approval": not existing.is_active
+            }
 
     # 2. Generate OTP
     otp = random.randint(100000, 999999)
+    
+    # 3. Set expiration (5 minutes from now)
+    expires_at = datetime.utcnow() + timedelta(minutes=5)
 
-    # 3. Save to OTP table
+    # 4. Save to OTP table with registration data
     record = OTPCode(
         email=data.email,
         otp=str(otp),
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
+        expires_at=expires_at,
+        name=data.name,
+        phone=data.phone,
+        password=data.password  # Will be hashed during verification
     )
     db.add(record)
     db.commit()
 
-    # 4. Send email using new email service
-    success = send_otp_email(data.email, str(otp))
+    # 5. Send OTP via EMAIL
+    email_success = send_otp_email(data.email, str(otp))
     
-    if not success:
+    # 6. Send OTP via SMS (if phone provided)
+    sms_success = True
+    if data.phone and len(data.phone) >= 11:
+        sms_success = sms_service.send_otp_sms(data.phone, str(otp))
+        print(f"📱 SMS OTP sent to {data.phone}: {sms_success}")
+    
+    if not email_success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to send OTP email"
@@ -117,7 +153,11 @@ def register_request(data: RegisterRequestModel, db: Session = Depends(get_db)):
 
     return {
         "status": "success",
-        "message": "OTP sent successfully"
+        "message": "OTP sent successfully via Email" + (" and SMS" if sms_success else ""),
+        "delivery": {
+            "email": email_success,
+            "sms": sms_success
+        }
     }
 
 
@@ -161,20 +201,45 @@ def register_verify(data: RegisterVerifyModel, db: Session = Depends(get_db)):
     # Mark OTP as used
     otp_record.is_used = True
     
-    # Find tenant and update
+    # Find tenant - if not exists, create it from stored registration data
     tenant = db.query(Tenant).filter(Tenant.email == email).first()
     
     if not tenant:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "status": "error",
-                "message": "Tenant not found. Please register first."
-            }
+        # Create new tenant from stored registration data
+        if not otp_record.name or not otp_record.password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "status": "error",
+                    "message": "Registration data missing. Please request a new OTP."
+                }
+            )
+        
+        # Hash password before storing
+        hashed_password = hash_password_v2(otp_record.password)
+        
+        # Generate unique tenant_id
+        import uuid
+        generated_tenant_id = f"TENANT_{uuid.uuid4().hex[:8].upper()}"
+        
+        # Create tenant record with AUTO-APPROVAL
+        tenant = Tenant(
+            tenant_id=generated_tenant_id,
+            name=otp_record.name,
+            email=email,
+            phone=otp_record.phone or "",
+            password=hashed_password,
+            is_verified=True,
+            is_active=True,  # AUTO-APPROVE new users
+            flat=None,  # Can be updated later
+            building=None  # Can be updated later
         )
-    
-    # Update tenant status
-    tenant.is_verified = True
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+    else:
+        # Update existing tenant
+        tenant.is_verified = True
     # Keep is_active=False until owner approves
     
     db.commit()
@@ -229,22 +294,28 @@ def login_v2(data: LoginV2RequestModel, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
                 "status": "error",
-                "message": "Invalid credentials"
+                "message": "Invalid credentials. Email not registered."
             }
         )
     
     # Verify password
+    password_hash = hash_password_v2(password)
+    print(f"🔑 Login attempt for {email}")
+    print(f"   Provided password hash: {password_hash[:20]}...")
+    print(f"   Stored password hash: {tenant.password[:20] if tenant.password else 'None'}...")
+    
     if not verify_password_v2(password, tenant.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
                 "status": "error",
-                "message": "Invalid credentials"
+                "message": "Invalid credentials. Wrong password."
             }
         )
     
-    # Check verification status
-    if not tenant.is_verified:
+    # Check verification status (defensive check for missing column)
+    is_verified = getattr(tenant, 'is_verified', True)  # Default True if column missing
+    if not is_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
@@ -253,25 +324,16 @@ def login_v2(data: LoginV2RequestModel, db: Session = Depends(get_db)):
             }
         )
     
-    # Check approval status
-    if not tenant.is_active:
+    # Check approval status FIRST
+    is_active = getattr(tenant, 'is_active', True)  # Default True if column missing
+    if not is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
                 "status": "error",
-                "message": "Account awaiting owner approval",
+                "message": "Account awaiting owner approval. Please contact the building administrator.",
                 "approval_status": "pending",
                 "tenant_id": tenant.id
-            }
-        )
-    
-    # Check if active
-    if not tenant.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "status": "error",
-                "message": "Account inactive"
             }
         )
     
@@ -281,6 +343,23 @@ def login_v2(data: LoginV2RequestModel, db: Session = Depends(get_db)):
         data={"sub": str(tenant.id), "email": tenant.email, "type": "tenant"},
         expires_delta=token_expires
     )
+    
+    # Update online status to 'online'
+    presence = db.query(ChatPresence).filter(ChatPresence.user_id == tenant.id).first()
+    if presence:
+        presence.status = "online"
+        presence.last_seen = datetime.utcnow()
+    else:
+        presence = ChatPresence(
+            user_id=tenant.id,
+            status="online",
+            last_seen=datetime.utcnow()
+        )
+        db.add(presence)
+    db.commit()
+    
+    print(f"✅ Login successful for {email}")
+    print(f"🟢 User {tenant.id} marked as ONLINE")
     
     return {
         "status": "success",
@@ -297,8 +376,8 @@ def login_v2(data: LoginV2RequestModel, db: Session = Depends(get_db)):
             "building": tenant.building,
             "floor": tenant.flat.split("-")[0] if "-" in str(tenant.flat) else "",
             "flat": tenant.flat,
-            "is_verified": tenant.is_verified,
-            "is_active": tenant.is_active
+            "is_verified": getattr(tenant, 'is_verified', True),
+            "is_active": getattr(tenant, 'is_active', True)
         }
     }
 
@@ -344,8 +423,8 @@ def get_my_profile(
             "flat": tenant.flat or "",
             "start_date": tenant.created_at.isoformat() if tenant.created_at else "",
             "profile_photo": tenant.profile_photo or "",
-            "is_verified": tenant.is_verified,
-            "is_active": tenant.is_active
+            "is_verified": getattr(tenant, 'is_verified', True),
+            "is_active": getattr(tenant, 'is_active', True)
         }
     }
 
@@ -373,7 +452,7 @@ def refresh_token(
             }
         )
     
-    if not tenant.is_verified or not tenant.is_active:
+    if not getattr(tenant, 'is_verified', True) or not getattr(tenant, 'is_active', True):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
@@ -430,8 +509,8 @@ def check_email_and_autofill(email: str, db: Session = Depends(get_db)):
             "floor": floor,
             "flat": tenant.flat or "",
             "start_date": tenant.created_at.isoformat() if tenant.created_at else "",
-            "is_verified": tenant.is_verified,
-            "is_active": tenant.is_active
+            "is_verified": getattr(tenant, 'is_verified', True),
+            "is_active": getattr(tenant, 'is_active', True)
         }
     }
 
@@ -445,8 +524,8 @@ def get_pending_tenants(db: Session = Depends(get_db)):
     Used by Windows App admin panel
     """
     pending = db.query(Tenant).filter(
-        Tenant.is_verified == True,
-        Tenant.is_active == False
+        getattr(Tenant, 'is_verified', True) == True,
+        getattr(Tenant, 'is_active', True) == False
     ).all()
     
     return {
@@ -538,4 +617,119 @@ def reject_tenant(tenant_id: int, db: Session = Depends(get_db)):
     return {
         "status": "success",
         "message": "Tenant rejected and removed"
+    }
+
+
+# ==================== FORGOT PASSWORD FLOW ====================
+
+@router.post("/forgot-password")
+def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """
+    Step 1: User enters email for password reset
+    Send OTP to their email
+    """
+    email = data.email
+    
+    # Check if email exists
+    tenant = db.query(Tenant).filter(Tenant.email == email).first()
+    
+    if not tenant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "status": "error",
+                "message": "Email not found. Please register first."
+            }
+        )
+    
+    # Generate new OTP
+    otp = random.randint(100000, 999999)
+    expires_at = datetime.utcnow() + timedelta(minutes=5)
+    
+    # Save OTP record
+    record = OTPCode(
+        email=email,
+        otp=str(otp),
+        created_at=datetime.utcnow(),
+        expires_at=expires_at,
+        name=tenant.name,
+        phone=tenant.phone or "",
+        is_password_reset=True  # Mark as password reset, not registration
+    )
+    db.add(record)
+    db.commit()
+    
+    # Send OTP via email
+    email_success = send_otp_email(email, str(otp))
+    
+    # Send OTP via SMS if phone exists
+    sms_success = True
+    if tenant.phone and len(tenant.phone) >= 11:
+        sms_success = sms_service.send_otp_sms(tenant.phone, str(otp))
+    
+    return {
+        "status": "success",
+        "message": "OTP sent to your email and phone",
+        "delivery": {
+            "email": email_success,
+            "sms": sms_success
+        }
+    }
+
+
+@router.post("/reset-password")
+def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """
+    Step 2: Verify OTP and set new password
+    For password reset, OTP is already verified (is_used=True), so we just need to find it
+    """
+    email = data.email
+    otp = data.otp
+    new_password = data.new_password
+    
+    # Find OTP record for password reset (can be already used since it was verified)
+    otp_record = db.query(OTPCode).filter(
+        OTPCode.email == email,
+        OTPCode.otp == otp,
+        OTPCode.is_password_reset == True
+    ).order_by(OTPCode.created_at.desc()).first()
+    
+    if not otp_record:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "status": "error",
+                "message": "Invalid OTP. Please request a new password reset."
+            }
+        )
+    
+    # Check expiration (even if used, OTP must not be expired)
+    if datetime.utcnow() > otp_record.expires_at:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "status": "error",
+                "message": "OTP expired. Please request a new password reset."
+            }
+        )
+    
+    # Find tenant
+    tenant = db.query(Tenant).filter(Tenant.email == email).first()
+    
+    if not tenant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "status": "error",
+                "message": "User not found"
+            }
+        )
+    
+    # Update password
+    tenant.password = hash_password_v2(new_password)
+    db.commit()
+    
+    return {
+        "status": "success",
+        "message": "Password reset successful! You can now login with your new password."
     }

@@ -20,13 +20,16 @@ class Tenant(Base):
     __tablename__ = "tenants"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(String, unique=True, nullable=False, index=True)
+    tenant_id = Column(String, unique=True, nullable=True, index=True)  # Auto-generated for email registration
     name = Column(String, nullable=False)
-    phone = Column(String, nullable=False)
-    flat = Column(String, nullable=False)
-    building = Column(String, nullable=False)
+    phone = Column(String, nullable=True)  # Optional for email registration
+    flat = Column(String, nullable=True)  # Optional initially
+    building = Column(String, nullable=True)  # Optional initially
     email = Column(String, unique=True, index=True)  # For OTP login
     password = Column(String, nullable=True)  # Set after OTP verification
+    avatar_url = Column(Text, nullable=True)  # Profile photo URL
+    is_verified = Column(Boolean, default=False)  # Email verified via OTP
+    is_active = Column(Boolean, default=False)  # Approved by owner
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -46,6 +49,12 @@ class OTPCode(Base):
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     is_used = Column(Boolean, default=False)  # Changed to Boolean
     expires_at = Column(DateTime, nullable=True)  # Optional expiration
+    is_password_reset = Column(Boolean, default=False)  # False = registration, True = password reset
+    
+    # Store pending registration data
+    name = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    password = Column(String, nullable=True)
 
 
 class Bill(Base):
@@ -97,11 +106,16 @@ class Notification(Base):
 
 
 class ChatRoom(Base):
-    """Chat Rooms for messaging"""
+    """Chat Rooms for messaging (1-on-1 and Group)"""
     __tablename__ = "chat_rooms"
 
     id = Column(Integer, primary_key=True, index=True)
     is_group = Column(Boolean, default=False)  # False = 1-on-1, True = group chat
+    group_name = Column(String, nullable=True)  # For group chats only
+    group_description = Column(Text, nullable=True)  # Group description
+    group_photo = Column(Text, nullable=True)  # Group photo URL/path
+    created_by = Column(Integer, ForeignKey("tenants.id"), nullable=True)  # Group creator/admin
+    created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
     participants = relationship("ChatParticipant", back_populates="room", cascade="all, delete-orphan")
@@ -109,12 +123,14 @@ class ChatRoom(Base):
 
 
 class ChatParticipant(Base):
-    """Chat Room Participants"""
+    """Chat Room Participants (supports group admin role)"""
     __tablename__ = "chat_participants"
 
     id = Column(Integer, primary_key=True, index=True)
     room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=False, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    is_admin = Column(Boolean, default=False)  # Group admin
+    joined_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
     room = relationship("ChatRoom", back_populates="participants")
@@ -200,6 +216,24 @@ class ChatUnread(Base):
     user_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
     count = Column(Integer, default=0)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class GroupCallLog(Base):
+    """Group Call History"""
+    __tablename__ = "group_call_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=False, index=True)
+    caller_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    call_type = Column(String, nullable=False)  # 'audio' or 'video'
+    started_at = Column(DateTime, default=datetime.utcnow)
+    ended_at = Column(DateTime, nullable=True)
+    duration = Column(Integer, default=0)  # seconds
+    participants_count = Column(Integer, default=1)
+
+    # Relationships
+    room = relationship("ChatRoom")
+    caller = relationship("Tenant", foreign_keys=[caller_id])
 
 
 # Database helper functions

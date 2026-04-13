@@ -3,8 +3,12 @@ LIFEASY V30 PRO - Production Database Configuration
 Supports both SQLite (dev) and PostgreSQL (production)
 """
 import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Environment-based configuration
 ENV = os.getenv("LIFEASY_ENV", "development")

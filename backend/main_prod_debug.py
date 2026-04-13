@@ -1,12 +1,16 @@
 """
-LIFEASY V30 PRO - Production FastAPI Application
+LIFEASY V30 PRO - Production FastAPI Application with Enhanced Error Logging
 Complete System: Auth + Payment + Notifications + Chat + Calling
 Phase 6 Features Included
 """
 import os
+import traceback
+import sys
+from datetime import datetime
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from database_prod import init_db, engine, Base
 from models import Tenant, OTPCode  # Import models to ensure they're registered
 from auth_master import router as auth_router
@@ -34,10 +38,33 @@ from realtime.call_socket import call_manager
 # Load environment variables from .env file
 load_dotenv()
 
+# ============================================
+# ENHANCED ERROR LOGGING SYSTEM
+# ============================================
+
+def log_error(level: str, message: str, exc: Exception = None):
+    """Centralized error logging with traceback"""
+    timestamp = datetime.now().isoformat()
+    log_entry = f"\n{'='*80}\n[{timestamp}] {level}: {message}"
+    
+    if exc:
+        log_entry += f"\n\nEXCEPTION TYPE: {type(exc).__name__}"
+        log_entry += f"\nEXCEPTION MESSAGE: {str(exc)}"
+        log_entry += f"\n\nFULL TRACEBACK:\n{traceback.format_exc()}"
+    
+    log_entry += f"\n{'='*80}\n"
+    
+    # Print to console (visible in Render logs)
+    print(log_entry, flush=True)
+    
+    # Also write to stderr for better visibility
+    sys.stderr.write(log_entry)
+    sys.stderr.flush()
+
 # Initialize FastAPI app
 app = FastAPI(
     title="LIFEASY V30 PRO API",
-    description="Production-ready apartment management system",
+    description="Production-ready apartment management system with enhanced error logging",
     version="30.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
@@ -48,6 +75,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:8000",
+        "http://localhost:3000",
         "https://api.lifeasy.com",
         "https://lifeasy.com",
         "*"  # Remove in production, specify exact domains
@@ -56,6 +84,78 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ============================================
+# GLOBAL ERROR HANDLER
+# ============================================
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch all unhandled exceptions and log them properly"""
+    
+    # Log the error with full traceback
+    log_error(
+        "UNHANDLED EXCEPTION",
+        f"Request: {request.method} {request.url.path}",
+        exc
+    )
+    
+    # Return detailed error in development, generic in production
+    env = os.getenv("LIFEASY_ENV", "development")
+    
+    if env == "development":
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Internal Server Error",
+                "detail": str(exc),
+                "type": type(exc).__name__,
+                "traceback": traceback.format_exc().split('\n'),
+                "path": request.url.path,
+                "method": request.method
+            }
+        )
+    else:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Internal Server Error",
+                "message": "An unexpected error occurred. Please try again.",
+                "path": request.url.path,
+                "timestamp": datetime.now().isoformat()
+            }
+        )
+
+# ============================================
+# REQUEST LOGGING MIDDLEWARE
+# ============================================
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all API requests with timing and status"""
+    start_time = datetime.now()
+    
+    # Log incoming request
+    print(f"\n📥 [{start_time.strftime('%H:%M:%S')}] {request.method} {request.url.path}", flush=True)
+    
+    try:
+        response = await call_next(request)
+        process_time = (datetime.now() - start_time).total_seconds()
+        
+        # Log successful response
+        emoji = "✅" if response.status_code < 400 else "❌"
+        print(f"{emoji} [{process_time:.2f}s] {request.method} {request.url.path} → {response.status_code}", flush=True)
+        
+        return response
+        
+    except Exception as e:
+        process_time = (datetime.now() - start_time).total_seconds()
+        log_error(
+            "REQUEST FAILED",
+            f"Request: {request.method} {request.url.path} | Time: {process_time:.2f}s",
+            e
+        )
+        raise
 
 # Include routers (Legacy + Phase 6 + V2)
 app.include_router(auth_router, prefix="/api")
@@ -95,9 +195,20 @@ app.include_router(media_router)  # /api/media/* (Media upload)
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on startup"""
-    print("🚀 Starting LIFEASY V30 PRO...")
-    init_db()
-    print("✅ Backend ready!")
+    print("\n" + "="*80, flush=True)
+    print("🚀 Starting LIFEASY V30 PRO...", flush=True)
+    print(f"📍 Environment: {os.getenv('LIFEASY_ENV', 'development')}", flush=True)
+    print(f"📍 Database: {os.getenv('DATABASE_URL', 'NOT SET')[:50]}...", flush=True)
+    print("="*80 + "\n", flush=True)
+    
+    try:
+        init_db()
+        print("✅ Database initialized successfully!", flush=True)
+    except Exception as e:
+        log_error("DATABASE INIT FAILED", "Failed to initialize database", e)
+        raise
+    
+    print("✅ Backend ready!", flush=True)
     
     # Start WebSocket cleanup background task
     # asyncio.create_task(
@@ -113,7 +224,8 @@ def root():
         "message": "LIFEASY V30 PRO API",
         "version": "30.0.0",
         "status": "running",
-        "docs": "/docs"
+        "docs": "/docs",
+        "timestamp": datetime.now().isoformat()
     }
 
 
@@ -123,6 +235,8 @@ def health_check():
     return {
         "status": "healthy",
         "database": "connected",
+        "environment": os.getenv("LIFEASY_ENV", "development"),
+        "timestamp": datetime.now().isoformat(),
         "services": {
             "auth": "JWT + OTP (V1 + V2)",
             "payment": "bKash + Nagad",
@@ -149,7 +263,8 @@ def api_status():
             "tenant_approval": "Owner approval workflow",
             "database": "SQLite/PostgreSQL"
         },
-        "version": "30.0.0-PHASE6-STEP8"
+        "version": "30.0.0-PHASE6-STEP8",
+        "timestamp": datetime.now().isoformat()
     }
 
 
@@ -160,7 +275,8 @@ if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8000"))
     
-    print(f"🌐 Server running on http://{host}:{port}")
-    print(f"📖 API Docs: http://{host}:{port}/docs")
+    print(f"\n🌐 Server running on http://{host}:{port}", flush=True)
+    print(f"📖 API Docs: http://{host}:{port}/docs", flush=True)
+    print(f"🔍 Enhanced logging enabled\n", flush=True)
     
     uvicorn.run(app, host=host, port=port)

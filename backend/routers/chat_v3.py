@@ -164,6 +164,45 @@ async def chat_websocket(
 
 # ==================== REST API ENDPOINTS ====================
 
+@router.post("/send")
+async def send_message_rest(
+    sender_id: int,
+    receiver_id: int,
+    message: str,
+    message_type: str = "text",
+    db: Session = Depends(get_db)
+):
+    """Send a message (REST API for mobile app compatibility)"""
+    
+    # Check if both users exist
+    sender = db.query(Tenant).filter(Tenant.id == sender_id).first()
+    receiver = db.query(Tenant).filter(Tenant.id == receiver_id).first()
+    
+    if not sender:
+        raise HTTPException(status_code=404, detail="Sender not found")
+    if not receiver:
+        raise HTTPException(status_code=404, detail="Receiver not found")
+    
+    # Create message in database
+    chat_message = ChatMessage(
+        sender_id=sender_id,
+        receiver_id=receiver_id,
+        text=message,
+        message_type=message_type,
+        timestamp=datetime.utcnow()
+    )
+    db.add(chat_message)
+    db.commit()
+    db.refresh(chat_message)
+    
+    print(f"✅ Message saved: {sender.name} -> {receiver.name}: '{message}'")
+    
+    return {
+        "status": "success",
+        "message": "Message sent",
+        "message_id": chat_message.id
+    }
+
 @router.get("/history/{room_id}")
 async def get_chat_history(
     room_id: int,
