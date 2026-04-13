@@ -57,11 +57,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers (Legacy + Phase 6 + V2)
-app.include_router(auth_router, prefix="/api")
-app.include_router(payment_router, prefix="/api")
-app.include_router(notification_router, prefix="/api")
-app.include_router(bill_router, prefix="/api")  # Bills Management
+# Include routers (All routers define their own prefixes)
+app.include_router(auth_router)  # Has /api/auth
+app.include_router(payment_router)  # Has routes
+app.include_router(notification_router)  # Has routes
+app.include_router(bill_router)  # Has routes
 
 # Phase 6 V1 Routers
 app.include_router(auth_phase6_router)  # /api/auth/*
@@ -70,26 +70,26 @@ app.include_router(chat_router)  # /api/chat/*
 app.include_router(call_router)  # /api/calls/*
 
 # Phase 6 V2 Routers (NEW - Complete Chat & Call System)
-app.include_router(auth_v2_router)  # /api/auth/v2/* (prefix already in router)
-app.include_router(chat_v2_router)  # /api/chat/v2/* (WebSocket + REST)
+app.include_router(auth_v2_router)  # /api/auth/v2/*
+app.include_router(chat_v2_router)  # /api/chat/v2/*
 app.include_router(chat_block_router)  # /api/chat/block/*
 app.include_router(chat_call_router)  # /api/chat/call/*
-app.include_router(call_v2_router)  # /api/call/v2/* (Real-Time Signaling)
+app.include_router(call_v2_router)  # /api/call/v2/*
 
 # Phase 6 V3 Routers (NEWEST - High Performance Chat)
-app.include_router(chat_v3_router)  # /api/chat/v3/* (Advanced features)
+app.include_router(chat_v3_router)  # /api/chat/v3/*
 
-# Tenant Router (for tenant-to-tenant features)
-app.include_router(tenant_router, prefix="/api/tenants")  # /api/tenants/* (Tenant management)
+# Tenant Router
+app.include_router(tenant_router)  # /api/tenants routes
 
-# Settings Router (WhatsApp-style settings)
-app.include_router(settings_router)  # /api/settings/* (Settings system)
+# Settings Router  
+app.include_router(settings_router)  # Has /api/settings
 
-# Group Router (Group chat & calls)
-app.include_router(group_router)  # /api/groups/* (Group management)
+# Group Router
+app.include_router(group_router)  # /api/groups/*
 
-# Media Router (File uploads)
-app.include_router(media_router)  # /api/media/* (Media upload)
+# Media Router
+app.include_router(media_router)  # /api/media/*
 
 
 @app.on_event("startup")
