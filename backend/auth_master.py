@@ -304,67 +304,79 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
     """
     Register new user with phone and password
     """
-    phone = request.phone
-    
-    print(f"📝 REGISTER REQUEST: Phone={phone}, Name={request.name}")
-    
-    # Validate phone format
-    if not phone.startswith("+880") or len(phone) != 14:
-        print(f"❌ INVALID PHONE FORMAT: {phone}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid phone number. Use format: +8801XXXXXXXXX"
+    try:
+        phone = request.phone
+        
+        print(f"📝 REGISTER REQUEST: Phone={phone}, Name={request.name}")
+        
+        # Validate phone format
+        if not phone.startswith("+880") or len(phone) != 14:
+            print(f"❌ INVALID PHONE FORMAT: {phone}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid phone number. Use format: +8801XXXXXXXXX"
+            )
+        
+        # Check if user exists - CRITICAL VALIDATION
+        existing = db.query(Tenant).filter(Tenant.phone == phone).first()
+        if existing:
+            print(f"❌ USER ALREADY EXISTS: {phone}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User already exists with this phone number"
+            )
+        
+        print(f"✅ PHONE VALIDATED - NEW USER: {phone}")
+        
+        # Generate tenant ID
+        tenant_id = f"TNT{phone[-8:]}"
+        
+        # Create new tenant
+        tenant = Tenant(
+            tenant_id=tenant_id,
+            phone=phone,
+            name=request.name or f"User {phone[-8:]}",
+            password=hash_password(request.password),
+            flat_number="TBA",
+            building_name="TBA",
+            rent_amount=0
         )
-    
-    # Check if user exists - CRITICAL VALIDATION
-    existing = db.query(Tenant).filter(Tenant.phone == phone).first()
-    if existing:
-        print(f"❌ USER ALREADY EXISTS: {phone}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User already exists with this phone number"
+        
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+        
+        print(f"✅ USER CREATED IN DB: {tenant_id}")
+        
+        # Create JWT token
+        access_token = create_access_token(
+            data={
+                "sub": tenant_id,
+                "phone": phone,
+                "type": "access"
+            }
         )
-    
-    print(f"✅ PHONE VALIDATED - NEW USER: {phone}")
-    
-    # Generate tenant ID
-    tenant_id = f"TNT{phone[-8:]}"
-    
-    # Create new tenant
-    tenant = Tenant(
-        tenant_id=tenant_id,
-        phone=phone,
-        name=request.name or f"User {phone[-8:]}",
-        password=hash_password(request.password),
-        flat_number="TBA",
-        building_name="TBA",
-        rent_amount=0
-    )
-    
-    db.add(tenant)
-    db.commit()
-    db.refresh(tenant)
-    
-    print(f"✅ USER CREATED IN DB: {tenant_id}")
-    
-    # Create JWT token
-    access_token = create_access_token(
-        data={
-            "sub": tenant_id,
+        
+        print(f"✅ REGISTRATION SUCCESS - Token generated for {phone}")
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "tenant_id": tenant_id,
             "phone": phone,
-            "type": "access"
+            "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
         }
-    )
-    
-    print(f"✅ REGISTRATION SUCCESS - Token generated for {phone}")
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "tenant_id": tenant_id,
-        "phone": phone,
-        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
-    }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ ERROR in register: {e}")
+        import traceback
+        traceback.print_exc()
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
+        )
 
 @router.post("/login", response_model=TokenResponse)
 async def login(request: dict, db: Session = Depends(get_db)):

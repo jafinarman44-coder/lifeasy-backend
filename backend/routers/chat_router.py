@@ -224,27 +224,36 @@ def get_chat_rooms(tenant_id: int, db: Session = Depends(get_db)):
     """
     Get all chat rooms for a tenant
     """
-    # Get all participant records for this tenant
-    participants = db.query(ChatParticipant).filter(
-        ChatParticipant.tenant_id == tenant_id
-    ).all()
-    
-    room_ids = [p.room_id for p in participants]
-    
-    # Get rooms
-    rooms = db.query(ChatRoom).filter(ChatRoom.id.in_(room_ids)).all()
-    
-    return {
-        "status": "success",
-        "count": len(rooms),
-        "rooms": [
-            {
-                "id": room.id,
-                "is_group": room.is_group
-            }
-            for room in rooms
-        ]
-    }
+    try:
+        # Get all participant records for this tenant
+        participants = db.query(ChatParticipant).filter(
+            ChatParticipant.tenant_id == tenant_id
+        ).all()
+        
+        room_ids = [p.room_id for p in participants]
+        
+        # Get rooms
+        rooms = db.query(ChatRoom).filter(ChatRoom.id.in_(room_ids)).all()
+        
+        return {
+            "status": "success",
+            "count": len(rooms),
+            "rooms": [
+                {
+                    "id": room.id,
+                    "is_group": room.is_group
+                }
+                for room in rooms
+            ]
+        }
+    except Exception as e:
+        print(f"❌ ERROR in get_chat_rooms: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching chat rooms: {str(e)}"
+        )
 
 
 # Helper function

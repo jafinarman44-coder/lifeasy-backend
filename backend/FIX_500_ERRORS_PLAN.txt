@@ -1,0 +1,145 @@
+================================================================================
+🔧 FIX FOR 500 ERRORS - COMPLETE SOLUTION
+================================================================================
+Date: 2026-04-15
+Problem: 5 endpoints returning 500 errors
+
+================================================================================
+❌ FAILING ENDPOINTS:
+================================================================================
+
+1. POST /api/auth/register         → 500
+2. GET  /api/notifications/{id}    → 500
+3. GET  /api/notifications/{id}/unread → 500
+4. GET  /api/chat/rooms/{id}       → 500
+5. GET  /api/chat/history/{id}     → 500
+
+================================================================================
+🔍 ROOT CAUSE ANALYSIS:
+================================================================================
+
+PROBLEM 1: Missing Database Tables
+  - notifications table might not exist on Render PostgreSQL
+  - chat_rooms table might not exist
+  - chat_messages table might not exist
+  - chat_participants table might not exist
+
+PROBLEM 2: Register Endpoint Conflict
+  - auth_router.py has /api/auth/login but NO /register
+  - auth_master.py has register() function but not imported correctly
+  - Need to check which router actually has register
+
+PROBLEM 3: Missing Error Handling
+  - Endpoints crash on null values
+  - No try-except blocks
+  - Returns plain text instead of JSON
+
+================================================================================
+✅ SOLUTION: STEP-BY-STEP
+================================================================================
+
+STEP 1: Create Missing Database Tables
+────────────────────────────────────────────────
+
+File created: create_missing_tables.py
+
+Action Required:
+  1. Set DATABASE_URL in Render Environment Variables
+  2. Run: python create_missing_tables.py
+  3. Verify tables created successfully
+
+Tables that will be created:
+  ✅ notifications
+  ✅ chat_rooms
+  ✅ chat_participants
+  ✅ chat_messages
+  ✅ call_logs
+  ✅ blocked_users
+
+────────────────────────────────────────────────
+
+STEP 2: Fix Register Endpoint
+────────────────────────────────────────────────
+
+Issue: /api/auth/register returns 500
+
+Check:
+  1. Is auth_master.py register() function being used?
+  2. Is it conflicting with auth_phase6_router?
+  3. Does Tenant table have all required columns?
+
+Likely fix needed in auth_master.py:
+  - Add try-except block
+  - Handle database errors gracefully
+  - Return proper error messages
+
+────────────────────────────────────────────────
+
+STEP 3: Add Error Handling to Failing Endpoints
+────────────────────────────────────────────────
+
+notification_router.py - Add:
+  try:
+      # existing code
+  except Exception as e:
+      print(f"ERROR: {e}")
+      raise HTTPException(status_code=500, detail=str(e))
+
+chat_router.py - Add:
+  try:
+      # existing code
+  except Exception as e:
+      print(f"ERROR: {e}")
+      raise HTTPException(status_code=500, detail=str(e))
+
+────────────────────────────────────────────────
+
+STEP 4: Push to GitHub & Deploy on Render
+────────────────────────────────────────────────
+
+  git add .
+  git commit -m "Fix 500 errors - add error handling + create tables"
+  git push origin main
+
+Then on Render:
+  - Manual deploy with "Clear build cache & deploy"
+  - Check logs for errors
+
+================================================================================
+📋 IMMEDIATE ACTION ITEMS (DO THIS NOW):
+================================================================================
+
+1. ✅ Run: python create_missing_tables.py
+   → Creates all missing database tables
+
+2. ✅ Check Render logs when testing /api/notifications/1
+   → Look for exact Python traceback
+
+3. ✅ Send me the error from Render logs
+   → I'll fix it immediately
+
+4. ✅ If DATABASE_URL not set:
+   → Go to Render dashboard
+   → Environment → Add Variable
+   → Key: DATABASE_URL
+   → Value: postgresql://... (from Render database)
+
+================================================================================
+🎯 EXPECTED RESULT AFTER FIX:
+================================================================================
+
+Before:
+  ❌ POST /api/auth/register         → 500
+  ❌ GET  /api/notifications/{id}    → 500
+  ❌ GET  /api/chat/rooms/{id}       → 500
+
+After:
+  ✅ POST /api/auth/register         → 200
+  ✅ GET  /api/notifications/{id}    → 200
+  ✅ GET  /api/chat/rooms/{id}       → 200
+
+Success Rate: 7/12 → 12/12 (100%)!
+
+================================================================================
+
+Next: Execute STEP 1 (create tables), then check Render logs for STEP 2

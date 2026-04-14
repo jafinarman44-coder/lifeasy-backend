@@ -78,27 +78,36 @@ def get_notifications(tenant_id: int, db: Session = Depends(get_db)):
     Get all notifications for a specific tenant
     Includes both individual and broadcast notifications
     """
-    # Get notifications for this tenant + broadcast notifications (NULL tenant_id)
-    notifications = db.query(Notification).filter(
-        (Notification.tenant_id == tenant_id) | (Notification.tenant_id == None)
-    ).order_by(Notification.created_at.desc()).all()
-    
-    return {
-        "status": "success",
-        "count": len(notifications),
-        "notifications": [
-            {
-                "id": n.id,
-                "tenant_id": n.tenant_id,
-                "title": n.title,
-                "message": n.message,
-                "is_read": n.is_read,
-                "created_at": n.created_at.isoformat(),
-                "type": "broadcast" if n.tenant_id is None else "individual"
-            }
-            for n in notifications
-        ]
-    }
+    try:
+        # Get notifications for this tenant + broadcast notifications (NULL tenant_id)
+        notifications = db.query(Notification).filter(
+            (Notification.tenant_id == tenant_id) | (Notification.tenant_id == None)
+        ).order_by(Notification.created_at.desc()).all()
+        
+        return {
+            "status": "success",
+            "count": len(notifications),
+            "notifications": [
+                {
+                    "id": n.id,
+                    "tenant_id": n.tenant_id,
+                    "title": n.title,
+                    "message": n.message,
+                    "is_read": n.is_read,
+                    "created_at": n.created_at.isoformat() if n.created_at else None,
+                    "type": "broadcast" if n.tenant_id is None else "individual"
+                }
+                for n in notifications
+            ]
+        }
+    except Exception as e:
+        print(f"❌ ERROR in get_notifications: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching notifications: {str(e)}"
+        )
 
 
 @router.get("/{tenant_id}/unread")
@@ -106,15 +115,24 @@ def get_unread_notifications(tenant_id: int, db: Session = Depends(get_db)):
     """
     Get unread notification count for a tenant
     """
-    unread_count = db.query(Notification).filter(
-        ((Notification.tenant_id == tenant_id) | (Notification.tenant_id == None)) &
-        (Notification.is_read == False)
-    ).count()
-    
-    return {
-        "status": "success",
-        "unread_count": unread_count
-    }
+    try:
+        unread_count = db.query(Notification).filter(
+            ((Notification.tenant_id == tenant_id) | (Notification.tenant_id == None)) &
+            (Notification.is_read == False)
+        ).count()
+        
+        return {
+            "status": "success",
+            "unread_count": unread_count
+        }
+    except Exception as e:
+        print(f"❌ ERROR in get_unread_notifications: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching unread count: {str(e)}"
+        )
 
 
 @router.put("/mark-read/{notification_id}")

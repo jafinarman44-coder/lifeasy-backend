@@ -152,34 +152,34 @@ print()
 # 3. User/Tenant Endpoints
 print(f"{BOLD}[3] Tenant/User Endpoints{RESET}")
 print(f"{'-'*80}")
-test_api("GET", "/api/tenants", "List Tenants")
-test_api("GET", "/api/tenants/profile", "Tenant Profile")
+test_api("GET", "/api/tenants/all", "List Tenants")
+test_api("GET", "/api/tenants/profile/1", "Tenant Profile (ID=1)")
 print()
 
 # 4. Notification Endpoints
 print(f"{BOLD}[4] Notification Endpoints{RESET}")
 print(f"{'-'*80}")
-test_api("GET", "/api/notifications", "Get Notifications")
-test_api("GET", "/api/notifications/count", "Notification Count")
+test_api("GET", "/api/notifications/1", "Get Notifications (tenant_id=1)")
+test_api("GET", "/api/notifications/1/unread", "Unread Count (tenant_id=1)")
 print()
 
 # 5. Chat Endpoints
 print(f"{BOLD}[5] Chat Endpoints{RESET}")
 print(f"{'-'*80}")
-test_api("GET", "/api/chat/v2/conversations", "Chat Conversations")
-test_api("GET", "/api/chat/v3/health", "Chat V3 Health")
+test_api("GET", "/api/chat/rooms/1", "Chat Rooms (tenant_id=1)")
+test_api("GET", "/api/chat/history/1", "Chat History (room_id=1)")
 print()
 
 # 6. Bill Endpoints
 print(f"{BOLD}[6] Bill Endpoints{RESET}")
 print(f"{'-'*80}")
-test_api("GET", "/api/bills", "List Bills")
+test_api("GET", "/api/bills/tenant/1", "List Bills (tenant_id=1)")
 print()
 
 # 7. Settings Endpoints
 print(f"{BOLD}[7] Settings Endpoints{RESET}")
 print(f"{'-'*80}")
-test_api("GET", "/api/settings", "Get Settings")
+test_api("GET", "/api/settings/load/1", "Get Settings (tenant_id=1)")
 print()
 
 # ============================================

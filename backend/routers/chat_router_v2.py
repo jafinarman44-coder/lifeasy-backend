@@ -124,23 +124,32 @@ async def chat_websocket(
 @router.get("/history/{room_id}")
 def get_chat_history(room_id: int, limit: int = 50, db: Session = Depends(get_db)):
     """Get chat history for a room"""
-    messages = db.query(ChatMessage).filter(
-        ChatMessage.room_id == room_id
-    ).order_by(ChatMessage.created_at.desc()).limit(limit).all()
-    
-    return {
-        'status': 'success',
-        'count': len(messages),
-        'messages': [
-            {
-                'id': msg.id,
-                'sender_id': msg.sender_id,
-                'message': msg.message,
-                'created_at': msg.created_at.isoformat(),
-            }
-            for msg in messages
-        ]
-    }
+    try:
+        messages = db.query(ChatMessage).filter(
+            ChatMessage.room_id == room_id
+        ).order_by(ChatMessage.created_at.desc()).limit(limit).all()
+        
+        return {
+            'status': 'success',
+            'count': len(messages),
+            'messages': [
+                {
+                    'id': msg.id,
+                    'sender_id': msg.sender_id,
+                    'message': msg.message,
+                    'created_at': msg.created_at.isoformat() if msg.created_at else None,
+                }
+                for msg in messages
+            ]
+        }
+    except Exception as e:
+        print(f"❌ ERROR in get_chat_history: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching chat history: {str(e)}"
+        )
 
 
 @router.get("/rooms/{tenant_id}")

@@ -1,0 +1,193 @@
+================================================================================
+🔧 FIX BACKEND 500 ERRORS - COMPLETE GUIDE
+================================================================================
+Generated: 2026-04-14
+Server: https://lifeasy-api.onrender.com
+
+================================================================================
+❌ FAILING ENDPOINTS (5 total):
+================================================================================
+
+1. POST /api/auth/register         → 500
+2. GET  /api/notifications/{id}    → 500
+3. GET  /api/notifications/{id}/unread → 500
+4. GET  /api/chat/rooms/{id}       → 500
+5. GET  /api/chat/history/{id}     → 500
+
+================================================================================
+🔍 ROOT CAUSE ANALYSIS:
+================================================================================
+
+All 5 endpoints return plain text "Internal Server Error" without JSON details.
+This means the errors are happening BEFORE error handling.
+
+LIKELY CAUSES:
+
+1. Database table doesn't exist
+   - Notification table missing
+   - ChatMessage table missing
+   - ChatRoom table missing
+
+2. Missing columns in tables
+   - Notification.created_at missing
+   - ChatMessage.room_id missing
+
+3. Import errors during route execution
+   - Models not imported correctly
+   - Dependencies missing
+
+================================================================================
+✅ SOLUTION: YOU MUST CHECK RENDER LOGS!
+================================================================================
+
+The ONLY way to know the exact error is to check Render logs:
+
+STEP 1: Go to Render Dashboard
+  → https://dashboard.render.com
+
+STEP 2: Click on "lifeasy-api" service
+
+STEP 3: Click "Logs" tab
+
+STEP 4: Test the endpoint NOW:
+  → https://lifeasy-api.onrender.com/api/notifications/1
+
+STEP 5: Look in logs for RED error text like:
+
+Example error you'll see:
+─────────────────────────────────────────────
+ERROR: Exception in ASGI application
+Traceback (most recent call last):
+  File "/opt/render/project/src/routers/notification_router.py", line 75, in get_notifications
+    notifications = db.query(Notification).filter(...)
+  File "/opt/render/project/src/models.py", line 245, in Notification
+    class Notification(Base):
+AttributeError: 'NoneType' object has no attribute 'created_at'
+─────────────────────────────────────────────
+
+THIS WILL TELL YOU EXACTLY WHAT'S WRONG!
+
+================================================================================
+🛠️ COMMON FIXES (Apply based on error):
+================================================================================
+
+FIX 1: Missing Database Table
+
+If error says: "table notifications does not exist"
+
+Run this in Render Shell or locally:
+
+```sql
+-- Create notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    tenant_id INTEGER,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create chat_rooms table
+CREATE TABLE IF NOT EXISTS chat_rooms (
+    id SERIAL PRIMARY KEY,
+    is_group BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create chat_messages table
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id SERIAL PRIMARY KEY,
+    room_id INTEGER NOT NULL,
+    sender_id INTEGER NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+FIX 2: Missing Column
+
+If error says: "column created_at does not exist"
+
+```sql
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
+```
+
+FIX 3: Registration Error
+
+If /api/auth/register fails:
+
+Check auth_router.py line: ??? for:
+- Missing Tenant table
+- Wrong column name
+- Password hashing error
+
+Common fix:
+```python
+# Make sure you're using correct field names
+tenant = Tenant(
+    name=data.name,          # Not "full_name"
+    email=data.email,
+    phone=data.phone,
+    is_active=True
+)
+```
+
+================================================================================
+📋 IMMEDIATE ACTION PLAN:
+================================================================================
+
+1. ✅ Open Render logs: https://dashboard.render.com
+2. ✅ Test endpoint: https://lifeasy-api.onrender.com/api/notifications/1
+3. ✅ Copy the RED error message (full traceback)
+4. ✅ Send me the error message
+5. ✅ I'll fix it IMMEDIATELY with exact code
+
+================================================================================
+⚡ ALTERNATIVE: Quick Test Script
+================================================================================
+
+Run this to get slightly more error detail:
+
+```bash
+curl -v https://lifeasy-api.onrender.com/api/notifications/1
+```
+
+Look for:
+- X-Render-Origin-Server: uvicorn
+- Any error headers
+
+But Render logs are MUCH better!
+
+================================================================================
+🎯 WHAT I NEED FROM YOU:
+================================================================================
+
+Please provide:
+
+1. Screenshot of Render logs (last 100 lines after testing)
+   OR
+2. Copy-paste the RED error text from logs
+
+With that, I can fix all 5 errors in 5 minutes!
+
+================================================================================
+💡 WHY THIS IS HAPPENING:
+================================================================================
+
+These endpoints worked in development because:
+- SQLite had all tables
+- You ran migrations locally
+- Database schema was complete
+
+On Render (PostgreSQL):
+- Tables might not be created yet
+- Migration script didn't run
+- Schema different from SQLite
+
+The fix is usually just creating missing tables!
+
+================================================================================
+
+Waiting for Render logs to provide exact fix...
