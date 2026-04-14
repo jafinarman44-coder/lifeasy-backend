@@ -68,24 +68,27 @@ try:
     print("✅ All routers imported successfully")
     
     # Register routers
-    app.include_router(auth_router)
-    app.include_router(payment_router)
-    app.include_router(notification_router)
-    app.include_router(bill_router)
-    app.include_router(auth_phase6_router)
-    app.include_router(notification_api_router)
-    app.include_router(chat_router)
-    app.include_router(call_router)
-    app.include_router(auth_v2_router)
-    app.include_router(chat_v2_router)
-    app.include_router(chat_block_router)
-    app.include_router(chat_call_router)
-    app.include_router(call_v2_router)
-    app.include_router(chat_v3_router)
-    app.include_router(tenant_router, prefix="/api/tenants")  # Add prefix here
-    app.include_router(settings_router)
-    app.include_router(group_router)
-    app.include_router(media_router)
+    # Routers WITHOUT prefix in their file (ADD prefix here)
+    app.include_router(auth_router, prefix="/api/auth")  # auth_master - V1 login
+    app.include_router(payment_router, prefix="/api/payment")  # payment_gateway
+    app.include_router(notification_router, prefix="/api/notify")  # notification_service (legacy)
+    app.include_router(tenant_router, prefix="/api/tenants")
+    app.include_router(bill_router, prefix="/api")
+    
+    # Routers WITH prefix in their file (NO additional prefix)
+    app.include_router(auth_phase6_router)  # Has /api/auth
+    app.include_router(notification_api_router)  # Has /api/notifications
+    app.include_router(chat_router)  # Has /api/chat
+    app.include_router(call_router)  # Has /api/calls
+    app.include_router(auth_v2_router)  # Has /api/auth/v2
+    app.include_router(chat_v2_router)  # Has /api/chat
+    app.include_router(chat_block_router)  # Has /api/chat/block
+    app.include_router(chat_call_router)  # Has /api/chat/call
+    app.include_router(call_v2_router)  # Has /api/call/v2
+    app.include_router(chat_v3_router)  # Has /api/chat/v3
+    app.include_router(settings_router)  # Has /api/settings
+    app.include_router(group_router)  # Has /api/groups
+    app.include_router(media_router)  # Has /api/media
     
     print("✅ All routers registered")
     
