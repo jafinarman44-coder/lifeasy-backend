@@ -39,7 +39,19 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # Import models AFTER Base is defined (required for proper initialization)
-from models import Tenant, OTPCode, Bill, Payment, Notification, ChatRoom, ChatParticipant, ChatMessage, BlockedUser, CallLog, ChatPresence, ChatTyping, ChatUnread
+# CRITICAL: All models MUST be imported here before init_db() is called
+from models import (
+    Tenant, OTPCode, Bill, Payment, Notification,
+    ChatRoom, ChatParticipant, ChatMessage,
+    BlockedUser, CallLog, ChatPresence, ChatTyping, ChatUnread
+)
+
+# Import additional models from separate files (if any)
+try:
+    from models_chat import ChatRoom, ChatMessage
+    print("✅ Chat models imported from models_chat.py")
+except ImportError:
+    print("ℹ️ Using chat models from models.py")
 
 
 def get_db():
@@ -53,8 +65,25 @@ def get_db():
 
 def init_db():
     """Initialize database tables"""
+    print("\n" + "="*80)
+    print("🔧 Initializing Database Tables...")
+    print("="*80)
+    
+    # Create all tables
     Base.metadata.create_all(bind=engine)
-    print(f"✅ Database initialized ({ENV} mode)")
+    
+    # Print list of tables created
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    
+    print(f"\n✅ Database tables created/verified:")
+    for table in tables:
+        print(f"   ✅ {table}")
+    
+    print(f"\n✅ Total tables: {len(tables)}")
+    print(f"✅ Database mode: {ENV}")
+    print("="*80 + "\n")
 
 
 if __name__ == "__main__":
