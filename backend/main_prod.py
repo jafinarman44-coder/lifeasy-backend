@@ -82,7 +82,7 @@ try:
     app.include_router(chat_call_router)
     app.include_router(call_v2_router)
     app.include_router(chat_v3_router)
-    app.include_router(tenant_router)
+    app.include_router(tenant_router, prefix="/api/tenants")  # Add prefix here
     app.include_router(settings_router)
     app.include_router(group_router)
     app.include_router(media_router)
