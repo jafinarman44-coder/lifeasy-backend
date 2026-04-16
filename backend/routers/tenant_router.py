@@ -118,3 +118,42 @@ async def get_tenant_profile(tenant_id: int, db: Session = Depends(get_db)):
             "avatar_url": tenant.avatar_url if hasattr(tenant, 'avatar_url') else None
         }
     }
+
+@router.post("/approve/{tenant_id}")
+async def approve_tenant(tenant_id: int):
+    """
+    Approve a tenant account from mobile app.
+    This endpoint activates the tenant account.
+    """
+    try:
+        db = ProdSessionLocal()
+        
+        # Find tenant
+        tenant = db.query(TenantProd).filter(TenantProd.id == tenant_id).first()
+        
+        if not tenant:
+            db.close()
+            raise HTTPException(status_code=404, detail="Tenant not found")
+        
+        # Approve the tenant
+        tenant.is_active = True
+        tenant.is_verified = True
+        db.commit()
+        
+        db.close()
+        
+        return {
+            "status": "success",
+            "message": f"Tenant {tenant.name} has been approved successfully",
+            "data": {
+                "id": tenant.id,
+                "name": tenant.name,
+                "email": tenant.email,
+                "is_active": tenant.is_active,
+                "is_verified": tenant.is_verified
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error approving tenant: {str(e)}")
