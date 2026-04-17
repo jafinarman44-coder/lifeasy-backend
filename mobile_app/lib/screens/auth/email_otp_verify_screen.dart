@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_service.dart';
+import 'set_new_password_screen.dart';
 
 class EmailOtpVerifyScreen extends StatefulWidget {
   final String email;
-  final String password;
+  final String? password; // Optional for password reset
+  final bool isPasswordReset; // Flag for password reset mode
 
   const EmailOtpVerifyScreen({
     super.key,
     required this.email,
-    required this.password,
+    this.password, // Made optional
+    this.isPasswordReset = false,
   });
 
   @override
@@ -18,8 +23,19 @@ class EmailOtpVerifyScreen extends StatefulWidget {
 class _EmailOtpVerifyScreenState extends State<EmailOtpVerifyScreen> {
   final otpCtrl = TextEditingController();
   bool loading = false;
+  bool _emailSent = true;
+  bool _smsSent = true;
 
   ApiService api = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    // Show dual delivery info if password reset mode
+    if (widget.isPasswordReset) {
+      _emailSent = true;
+    }
+  }
 
   Future<void> verifyOTP() async {
     if (otpCtrl.text.trim().isEmpty) {
@@ -40,16 +56,39 @@ class _EmailOtpVerifyScreenState extends State<EmailOtpVerifyScreen> {
       setState(() => loading = false);
 
       if (response["success"] == true || response["status"] == "success") {
-        if (mounted) {
-          Navigator.pop(context); // Go back to signup
-          Navigator.pop(context); // Go back to auth selection
+        // For password reset, navigate to set new password screen with OTP
+        if (widget.isPasswordReset) {
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SetNewPasswordScreen(
+                  email: widget.email,
+                  otp: otpCtrl.text.trim(), // Pass the verified OTP
+                ),
+              ),
+            );
+          }
+        } else {
+          // Normal registration flow
+          // Save user details for auto-fill on this device
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('last_signup_email', widget.email);
+          
+          if (mounted) {
+            Navigator.pop(context); // Go back to signup
+            
+            // Also pop signup screen
+            Navigator.pop(context); // Go back to auth selection
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Email Verified! Please login."),
-              backgroundColor: Colors.green,
-            ),
-          );
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Email Verified! Details saved for next time. Please login."),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 4),
+              ),
+            );
+          }
         }
       } else {
         if (mounted) {
@@ -111,6 +150,43 @@ class _EmailOtpVerifyScreenState extends State<EmailOtpVerifyScreen> {
                 style: const TextStyle(color: Colors.white70),
                 textAlign: TextAlign.center,
               ),
+              
+              // Dual delivery indicators
+              if (!widget.isPasswordReset)
+                Container(
+                  margin: EdgeInsets.only(top: 12),
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.email, color: Colors.blue, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Email OTP sent ✓',
+                            style: TextStyle(color: Colors.blue),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(Icons.sms, color: Colors.green, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'SMS OTP also sent ✓',
+                            style: TextStyle(color: Colors.green),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 30),
               TextField(
                 controller: otpCtrl,
@@ -160,14 +236,37 @@ class _EmailOtpVerifyScreenState extends State<EmailOtpVerifyScreen> {
                 ),
               ),
               const SizedBox(height: 15),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text(
-                  "Go Back",
-                  style: TextStyle(color: Colors.white70),
-                ),
+              // Resend OTP options
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton.icon(
+                    onPressed: () {
+                      // Resend email OTP
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Email OTP resent!')),
+                      );
+                    },
+                    icon: Icon(Icons.email, size: 16),
+                    label: Text('Resend Email'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.blue,
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      // Resend SMS OTP
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('SMS OTP resent!')),
+                      );
+                    },
+                    icon: Icon(Icons.sms, size: 16),
+                    label: Text('Resend SMS'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.green,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // =========================
-// V2 AUTH SCREENS
+// APP THEME
 // =========================
+import 'theme/app_theme.dart';
+
+// V2 AUTH SCREENS
 import 'screens/auth/email_login_screen.dart';
 import 'screens/auth/email_signup_screen.dart';
 import 'screens/auth/email_otp_verify_screen.dart';
@@ -49,9 +52,15 @@ class LifeasyApp extends StatelessWidget {
     return MaterialApp(
       title: "LIFEASY V27",
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xff0f172a),
-      ),
+      theme: AppTheme.theme,
+      // Define routes
+      initialRoute: isLoggedIn ? '/dashboard' : '/',
+      routes: {
+        '/': (context) => const AuthSelectionScreen(),
+        '/login': (context) => const EmailLoginScreen(),
+        '/signup': (context) => const EmailSignupScreen(),
+        '/dashboard': (context) => DashboardScreen(tenantId: tenantId ?? ''),
+      },
       home: isLoggedIn
           ? DashboardScreen(tenantId: tenantId.toString())
           : const AuthSelectionScreen(),

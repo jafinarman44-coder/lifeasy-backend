@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lifeasy Network Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #0f172a; color: white; }
+        .test { margin: 20px 0; padding: 15px; border-radius: 8px; }
+        .success { background: #10b981; }
+        .error { background: #ef4444; }
+        .pending { background: #f59e0b; }
+        button { padding: 12px 24px; margin: 10px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Lifeasy Backend Network Test</h1>
+    <p>Open this file from your PHONE to test connectivity</p>
+    
+    <button onclick="testBackend('http://192.168.0.181:8000/api/status')">Test 192.168.0.181</button>
+    <button onclick="testBackend('http://192.168.137.1:8000/api/status')">Test 192.168.137.1</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        async function testBackend(url) {
+            const results = document.getElementById('results');
+            results.innerHTML += `<div class="pending">🔄 Testing: ${url}</div>`;
+            
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    results.innerHTML += `<div class="success">✅ SUCCESS: ${url}<br>Status: ${JSON.stringify(data)}</div>`;
+                } else {
+                    results.innerHTML += `<div class="error">❌ FAILED: ${url}<br>Status: ${response.status}</div>`;
+                }
+            } catch (error) {
+                results.innerHTML += `<div class="error">❌ ERROR: ${url}<br>${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

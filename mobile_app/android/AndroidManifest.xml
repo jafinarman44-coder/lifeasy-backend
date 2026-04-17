@@ -1,0 +1,9 @@
+<!-- This is a placeholder to satisfy Flutter 3.27.0 embedding check -->
+<!-- The actual manifest is at android/app/src/main/AndroidManifest.xml -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+</manifest>

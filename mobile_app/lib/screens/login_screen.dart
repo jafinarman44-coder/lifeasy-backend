@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import 'otp_screen.dart';
 
@@ -14,6 +15,37 @@ class _LoginScreenState extends State<LoginScreen> {
   final passController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
+  bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _rememberMe = prefs.getBool('remember_me') ?? false;
+      if (_rememberMe) {
+        idController.text = prefs.getString('tenant_id') ?? '';
+        passController.text = prefs.getString('password') ?? '';
+      }
+    });
+  }
+
+  Future<void> _saveCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setBool('remember_me', true);
+      await prefs.setString('tenant_id', idController.text);
+      await prefs.setString('password', passController.text);
+    } else {
+      await prefs.setBool('remember_me', false);
+      await prefs.remove('tenant_id');
+      await prefs.remove('password');
+    }
+  }
 
   Future<void> _handleLogin() async {
     setState(() {
@@ -30,6 +62,9 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isLoading = false);
 
       if (result['status'] == 'success') {
+        // Save credentials if remember me is checked
+        await _saveCredentials();
+        
         // Extract email from response (default to empty if not present)
         final email = result['email'] ?? '';
         
@@ -77,7 +112,13 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.apartment, size: 60, color: Colors.blueAccent),
+              // YOUR LOGO - company_logo.png
+              Image.asset(
+                'assets/branding/company_logo.png',
+                width: 100,
+                height: 100,
+                fit: BoxFit.contain,
+              ),
               SizedBox(height: 15),
               Text("LIFEASY",
                   style: TextStyle(
@@ -109,6 +150,56 @@ class _LoginScreenState extends State<LoginScreen> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                ),
+              ),
+              SizedBox(height: 10),
+              // Remember Me Checkbox - MAXIMUM VISIBILITY
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blueAccent, width: 2),
+                ),
+                child: Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberMe,
+                      onChanged: (value) {
+                        setState(() {
+                          _rememberMe = value ?? false;
+                        });
+                      },
+                      activeColor: Colors.green,
+                      checkColor: Colors.white,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _rememberMe = !_rememberMe;
+                        });
+                      },
+                      child: Row(
+                        children: [
+                          Icon(
+                            _rememberMe ? Icons.check_box : Icons.check_box_outline_blank,
+                            color: _rememberMe ? Colors.green : Colors.grey,
+                            size: 24,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Remember Me',
+                            style: TextStyle(
+                              color: _rememberMe ? Colors.green : Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
               SizedBox(height: 20),

@@ -1,0 +1,7 @@
+WhatsApp-style chat background pattern will be added here.
+For now, the UI will use a solid dark color background.
+
+To add a custom pattern:
+1. Create a subtle repeating pattern image (512x512px)
+2. Save as chat_bg_pattern.png
+3. Update pubspec.yaml to include this asset

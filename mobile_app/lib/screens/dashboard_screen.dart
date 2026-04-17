@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'bills_screen.dart';
 import 'payments_screen.dart';
+import 'notifications_screen.dart';
+import 'profile_screen.dart';
+import 'chat_screen.dart';
+import 'voice_call_screen.dart';
+import 'real_video_call_screen.dart';
+import 'tenant_list_screen.dart';
+import 'tenant_chat_inbox_screen.dart';
+import 'settings/settings_screen.dart';
+import 'groups/groups_inbox_screen.dart';
+import 'whatsapp_chat_list.dart';
 
 class DashboardScreen extends StatelessWidget {
   final String tenantId;
@@ -101,7 +111,12 @@ class DashboardScreen extends StatelessWidget {
               icon: Icons.notifications,
               title: "Notifications",
               subtitle: "View alerts",
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => NotificationsScreen(tenantId: tenantId)),
+                );
+              },
             ),
             
             _buildActionCard(
@@ -109,7 +124,108 @@ class DashboardScreen extends StatelessWidget {
               icon: Icons.person,
               title: "Profile",
               subtitle: "Account settings",
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => SettingsScreen(tenantId: tenantId)),
+                );
+              },
+            ),
+            
+            SizedBox(height: 15),
+            
+            // Communication Features
+            Text(
+              "Communication",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            
+            SizedBox(height: 15),
+            
+            // Tenant Chat Inbox (WhatsApp-style)
+            _buildActionCard(
+              context,
+              icon: Icons.chat_bubble,
+              title: "Messages",
+              subtitle: "WhatsApp-style chat with tenants",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => WhatsAppStyleChatList(tenantId: tenantId)),
+                );
+              },
+            ),
+            
+            // Tenant List
+            _buildActionCard(
+              context,
+              icon: Icons.people,
+              title: "Tenants",
+              subtitle: "Browse all tenants",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => TenantListScreen(tenantId: tenantId)),
+                );
+              },
+            ),
+            
+            // Groups
+            _buildActionCard(
+              context,
+              icon: Icons.group,
+              title: "Groups",
+              subtitle: "Group chats",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => GroupsInboxScreen(tenantId: tenantId)),
+                );
+              },
+            ),
+            
+            // Owner/Manager Chat (Legacy)
+            _buildActionCard(
+              context,
+              icon: Icons.chat,
+              title: "Chat with Manager",
+              subtitle: "Message owner/manager",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ChatScreen(tenantId: tenantId)),
+                );
+              },
+            ),
+            
+            _buildActionCard(
+              context,
+              icon: Icons.call,
+              title: "Voice Call",
+              subtitle: "Call owner/manager",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => VoiceCallScreen(tenantId: tenantId, channelName: 'voice_$tenantId', receiverId: '0')),
+                );
+              },
+            ),
+            
+            _buildActionCard(
+              context,
+              icon: Icons.videocam,
+              title: "Video Call",
+              subtitle: "Video call owner/manager",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => RealVideoCallScreen(tenantId: tenantId)),
+                );
+              },
             ),
             
             SizedBox(height: 15),
