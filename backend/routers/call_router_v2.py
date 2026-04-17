@@ -41,35 +41,63 @@ async def call_socket(websocket: WebSocket, user_id: int):
     - Deliver pending offline messages
     - Handle 12 different signaling actions
     - Graceful error handling and cleanup
+    
+    FIXED: Manual database session (Depends doesn't work with WebSocket)
     """
     user_id = int(user_id)
+    
+    # Step 1: Accept WebSocket FIRST
     await websocket.accept()
-
-    # Register socket in manager
-    await call_manager.add_socket(user_id, websocket)
-
-    # Flush offline pending messages
-    pending = message_buffer.retrieve(user_id)
-    if pending:
-        for msg in pending:
-            await websocket.send_json(msg)
-
-    print(f"📞 WS Connected: {user_id}")
-
+    
+    # Step 2: Create database session manually
+    from database_prod import get_db
+    db = next(get_db())
+    
     try:
+        # Register socket in manager
+        await call_manager.add_socket(user_id, websocket)
+        
+        # Flush offline pending messages
+        pending = message_buffer.retrieve(user_id)
+        if pending:
+            for msg in pending:
+                await websocket.send_json(msg)
+        
+        print(f"📞 WS Connected: {user_id}")
+        
         # Receive loop
         while True:
-            raw = await websocket.receive_text()
-            data = json.loads(raw)
-            await process_message(user_id, data)
-
+            try:
+                raw = await websocket.receive_text()
+                data = json.loads(raw)
+                await process_message(user_id, data)
+            
+            except json.JSONDecodeError:
+                await websocket.send_json({
+                    "action": "error",
+                    "message": "Invalid JSON format"
+                })
+            except Exception as e:
+                print(f"❌ Call WebSocket error for user {user_id}: {e}")
+                import traceback
+                traceback.print_exc()
+                await websocket.send_json({
+                    "action": "error",
+                    "message": f"Server error: {str(e)}"
+                })
+    
     except WebSocketDisconnect:
         print(f"🔴 WS Disconnected: {user_id}")
-        await call_manager.remove_socket(user_id)
-
-    except Exception:
+    except Exception as e:
+        print(f"❌ Call WebSocket connection error: {e}")
+        import traceback
         traceback.print_exc()
+    finally:
+        # Always close database session
+        db.close()
+        # Always remove from call manager
         await call_manager.remove_socket(user_id)
+        print(f"📞 User {user_id} cleaned up")
 
 
 # ============================================================
