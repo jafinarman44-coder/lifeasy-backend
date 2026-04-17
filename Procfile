@@ -1,1 +1,1 @@
-web: cd backend && gunicorn main_prod:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+web: cd backend && uvicorn main_prod:app --host 0.0.0.0 --port $PORT --workers 1
