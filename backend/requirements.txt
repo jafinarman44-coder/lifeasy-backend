@@ -38,5 +38,16 @@ python-multipart==0.0.9
 # Production server management
 gunicorn==23.0.0
 
+# WebSocket Support
+websocket-client==1.9.0
+websockets==13.1
+
+# Email Services
+fastapi-mail==1.4.1
+aiosmtplib==3.0.2
+
+# Date/Time
+python-dateutil==2.9.0
+
 # Development (optional)
 # pytest==8.0.0
