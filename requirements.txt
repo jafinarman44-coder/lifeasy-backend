@@ -1,4 +1,4 @@
-﻿fastapi
+fastapi
 uvicorn
 pydantic
 python-jose
@@ -6,3 +6,10 @@ passlib[bcrypt]
 fastapi-mail
 sqlalchemy
 psycopg2-binary
+httpx
+python-multipart
+email-validator
+firebase-admin
+websockets
+aiofiles
+python-dotenv
