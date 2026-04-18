@@ -113,6 +113,15 @@ class CallSocketManager:
             except:
                 pass
             del self.active_ws[user_id]
+    
+    # Alias methods for compatibility
+    async def add_socket(self, user_id: int, ws: WebSocket):
+        """Alias for connect - registers WebSocket connection"""
+        await self.connect(user_id, ws)
+    
+    async def remove_socket(self, user_id: int):
+        """Alias for disconnect - removes WebSocket connection"""
+        self.disconnect(user_id)
 
 
 # Global call manager instance

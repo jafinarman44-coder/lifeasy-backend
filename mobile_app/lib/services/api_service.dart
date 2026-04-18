@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // PRODUCTION BACKEND (Render - for real users)
-  static const String baseUrl = 'https://lifeasy-api.onrender.com/api';
+  static const String baseUrl = 'http://192.168.43.219:8000/api';
   
   // LOCAL BACKEND (uncomment for development/testing only)
   // static const String baseUrl = 'http://192.168.0.181:8000/api';

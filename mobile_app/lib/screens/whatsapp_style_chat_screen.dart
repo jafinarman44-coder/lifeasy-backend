@@ -49,7 +49,7 @@ class _WhatsAppStyleChatScreenState extends State<WhatsAppStyleChatScreen> {
       await _chatSocket.connect(
         widget.tenantId,
         receiverId: widget.receiverId,
-        serverIp: 'lifeasy-api.onrender.com',
+        serverIp: '192.168.43.219',
       );
 
       _chatSocket.onMessageReceived = (messageData) {
@@ -126,7 +126,7 @@ class _WhatsAppStyleChatScreenState extends State<WhatsAppStyleChatScreen> {
         );
       }
 
-      final url = Uri.parse('https://lifeasy-api.onrender.com/api/chat/v3/send');
+      final url = Uri.parse('http://192.168.43.219:8000/api/chat/v3/send');
       final response = await http.post(
         url,
         body: {

@@ -103,6 +103,14 @@ class MessageQueue:
                     for user_id, messages in self._queues.items()
                 }
             }
+    
+    def pop_all(self, user_id: int) -> List[dict]:
+        """Alias for get_queued_messages - returns and clears all queued messages"""
+        return self.get_queued_messages(user_id)
+    
+    def add_message(self, user_id: int, message: dict):
+        """Alias for queue_message - adds message to queue"""
+        self.queue_message(user_id, message)
 
 
 # Global instance

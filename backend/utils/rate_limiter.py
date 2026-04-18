@@ -105,6 +105,23 @@ class RateLimiter:
             # Remove empty histories
             if not self.call_history[user_id]:
                 del self.call_history[user_id]
+    
+    def allowed(self, user_id: int) -> bool:
+        """
+        Check if user is allowed to make a call (NOT rate-limited).
+        Alias for convenience - opposite of too_many_calls()
+        
+        Returns:
+            True if allowed, False if rate-limited
+        """
+        return not self.too_many_calls(user_id)
+    
+    def allow(self, user_id: int) -> bool:
+        """
+        Alias for allowed() - checks if user can make a call.
+        For compatibility with different naming conventions.
+        """
+        return self.allowed(user_id)
 
 
 # Global rate limiter instance

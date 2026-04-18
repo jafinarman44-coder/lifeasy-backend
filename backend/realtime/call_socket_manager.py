@@ -82,8 +82,13 @@ class CallSocketManager:
         """
         Accept new WebSocket connection.
         Updates heartbeat timestamp and registers user.
+        
+        NOTE: websocket.accept() is already called in the router!
+        Don't call it again here.
         """
-        await websocket.accept()
+        # DON'T accept here - already accepted in router
+        # await websocket.accept()  # REMOVED - causes duplicate accept error!
+        
         self.active_connections[user_id] = websocket
         self.user_last_seen[user_id] = time.time()
         print(f"🟢 WS Connected: {user_id}")
@@ -119,6 +124,13 @@ class CallSocketManager:
         Called when client sends {"action": "ping"}
         """
         self.user_last_seen[user_id] = time.time()
+    
+    async def update_ping(self, user_id: int):
+        """
+        Alias for receive_ping - updates heartbeat timestamp.
+        For compatibility with router.
+        """
+        await self.receive_ping(user_id)
     
     # =========================================================
     # MESSAGE DELIVERY
@@ -182,6 +194,15 @@ class CallSocketManager:
         """Disconnect all users (for server shutdown)"""
         for user_id in list(self.active_connections.keys()):
             asyncio.create_task(self.disconnect(user_id))
+    
+    # Alias methods for compatibility with router
+    async def add_socket(self, user_id: int, websocket: WebSocket):
+        """Alias for connect - registers WebSocket connection"""
+        await self.connect(user_id, websocket)
+    
+    async def remove_socket(self, user_id: int):
+        """Alias for disconnect - removes WebSocket connection"""
+        await self.disconnect(user_id)
 
 
 # Global call manager instance

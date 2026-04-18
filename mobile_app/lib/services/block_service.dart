@@ -8,7 +8,7 @@ class BlockService {
 
   String? _serverIp;
   
-  void initialize({String serverIp = 'lifeasy-api.onrender.com'}) {
+  void initialize({String serverIp = '192.168.43.219'}) {
     _serverIp = serverIp;
   }
 

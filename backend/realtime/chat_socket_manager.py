@@ -294,7 +294,8 @@ class ChatSocketManager:
     async def broadcast_to_building(self, building_id: int, message: dict, db: Session):
         """Broadcast message to all users in a building"""
         # Get all users in building
-        users = db.query(Tenant).filter(Tenant.building == building_id).all()
+        # FIX: Cast building_id to string since Tenant.building is VARCHAR
+        users = db.query(Tenant).filter(Tenant.building == str(building_id)).all()
         
         for user in users:
             if user.id in self.active_connections:

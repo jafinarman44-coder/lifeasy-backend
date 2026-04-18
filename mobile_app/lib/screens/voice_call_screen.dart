@@ -52,7 +52,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
       // Connect to signaling server
       await _callSocket.connect(
         widget.tenantId,
-        serverIp: 'lifeasy-api.onrender.com',
+        serverIp: '192.168.43.219',
       );
       
       // Setup call event handlers

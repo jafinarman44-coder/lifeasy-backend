@@ -6,7 +6,7 @@ class MediaUploadService {
   factory MediaUploadService() => _instance;
   MediaUploadService._internal();
 
-  static String _serverIp = 'lifeasy-api.onrender.com';
+  static String _serverIp = '192.168.43.219';
   
   void setServerIp(String ip) {
     _serverIp = ip;

@@ -49,7 +49,7 @@ class _ChatScreenState extends State<ChatScreen> {
       await _chatSocket.connect(
         widget.tenantId,
         receiverId: widget.receiverId,
-        serverIp: 'lifeasy-api.onrender.com',
+        serverIp: '192.168.43.219',  // LOCAL BACKEND
       );
       
       // Listen for incoming messages
@@ -118,7 +118,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       
       // BACKUP: Also send via HTTP API for persistence
-      final url = Uri.parse('https://lifeasy-api.onrender.com/api/chat/v3/send');
+      final url = Uri.parse('http://192.168.43.219:8000/api/chat/v3/send');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
