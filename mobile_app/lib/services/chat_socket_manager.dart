@@ -43,10 +43,10 @@ class ChatSocketManager {
       _receiverId = receiverId;  // Store receiver
       _serverIp = serverIp ?? 'lifeasy-backend-production.up.railway.app';
       
-      // CRITICAL FIX: Use correct WebSocket protocol for Render
+      // CRITICAL FIX: Use correct WebSocket protocol for Railway/Render
       // Production: wss://lifeasy-backend-production.up.railway.app (no port)
       // Local: ws://localhost:8000 (with port)
-      final isProduction = _serverIp!.contains('onrender.com');
+      final isProduction = _serverIp!.contains('railway.app') || _serverIp!.contains('onrender.com');
       final protocol = isProduction ? 'wss' : 'ws';
       final portSuffix = isProduction ? '' : ':8000';
       

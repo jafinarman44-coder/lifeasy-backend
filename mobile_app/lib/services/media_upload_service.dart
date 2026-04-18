@@ -20,7 +20,7 @@ class MediaUploadService {
     int? roomId,
   }) async {
     try {
-      final uri = Uri.parse('http://$_serverIp:8000/api/media/upload');
+      final uri = Uri.parse('https://$_serverIp/api/media/upload');
       final request = http.MultipartRequest('POST', uri);
       
       request.fields['sender_id'] = senderId.toString();
@@ -42,7 +42,7 @@ class MediaUploadService {
           'success': true,
           'message_type': 'image',
           'file_path': responseBody, // Will be parsed properly
-          'image_url': 'http://$_serverIp:8000/$responseBody',
+          'image_url': 'https://$_serverIp/$responseBody',
         };
       } else {
         return {'success': false, 'error': 'Upload failed'};
@@ -62,7 +62,7 @@ class MediaUploadService {
     int? roomId,
   }) async {
     try {
-      final uri = Uri.parse('http://$_serverIp:8000/api/media/upload');
+      final uri = Uri.parse('https://$_serverIp/api/media/upload');
       final request = http.MultipartRequest('POST', uri);
       
       request.fields['sender_id'] = senderId.toString();
@@ -105,7 +105,7 @@ class MediaUploadService {
     int? roomId,
   }) async {
     try {
-      final uri = Uri.parse('http://$_serverIp:8000/api/media/upload-voice');
+      final uri = Uri.parse('https://$_serverIp/api/media/upload-voice');
       final request = http.MultipartRequest('POST', uri);
       
       request.fields['sender_id'] = senderId.toString();
@@ -144,6 +144,6 @@ class MediaUploadService {
     if (filePath.startsWith('http')) {
       return filePath;
     }
-    return 'http://$_serverIp:8000/$filePath';
+    return 'https://$_serverIp/$filePath';
   }
 }

@@ -31,7 +31,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     setState(() => _isLoading = true);
     
     try {
-      final url = Uri.parse('http://$_serverIp:8000/api/tenants/all');
+      final url = Uri.parse('https://$_serverIp/api/tenants/all');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -65,7 +65,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final url = Uri.parse('http://$_serverIp:8000/api/groups/create');
+      final url = Uri.parse('https://$_serverIp/api/groups/create');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},

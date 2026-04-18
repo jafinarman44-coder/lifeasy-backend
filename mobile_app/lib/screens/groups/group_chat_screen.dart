@@ -35,7 +35,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   void _connectToGroupChat() {
-    final wsUrl = 'ws://$_serverIp:8000/api/groups/ws/${widget.tenantId}';
+    final wsUrl = 'wss://$_serverIp/api/groups/ws/${widget.tenantId}';
     
     _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
     

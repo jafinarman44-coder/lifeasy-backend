@@ -19,7 +19,7 @@ class BlockService {
   }) async {
     try {
       final url = Uri.parse(
-        'http://$_serverIp:8000/api/chat/v3/block/$blockedId',
+        'https://$_serverIp/api/chat/v3/block/$blockedId',
       ).replace(queryParameters: {'blocker_id': blockerId});
 
       final response = await http.post(
@@ -56,7 +56,7 @@ class BlockService {
   }) async {
     try {
       final url = Uri.parse(
-        'http://$_serverIp:8000/api/chat/v3/unblock/$blockedId',
+        'https://$_serverIp/api/chat/v3/unblock/$blockedId',
       ).replace(queryParameters: {'blocker_id': blockerId});
 
       final response = await http.post(
@@ -90,7 +90,7 @@ class BlockService {
   Future<List<String>> getBlockedUsers(String userId) async {
     try {
       final url = Uri.parse(
-        'http://$_serverIp:8000/api/chat/v3/blocked/list/$userId',
+        'https://$_serverIp/api/chat/v3/blocked/list/$userId',
       );
 
       final response = await http.get(

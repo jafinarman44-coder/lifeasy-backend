@@ -28,7 +28,7 @@ class _GroupsInboxScreenState extends State<GroupsInboxScreen> {
     setState(() => _isLoading = true);
     
     try {
-      final url = Uri.parse('http://$_serverIp:8000/api/groups/list/${widget.tenantId}');
+      final url = Uri.parse('https://$_serverIp/api/groups/list/${widget.tenantId}');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {

@@ -278,3 +278,153 @@ async def chat_health():
         "websocket": "ready",
         "rest_api": "ready"
     }
+
+
+# ==================== BLOCK/UNBLOCK ENDPOINTS ====================
+
+@router.post("/block/{blocked_id}")
+async def block_user(
+    blocked_id: int,
+    blocker_id: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Block a user from sending messages
+    
+    Args:
+        blocked_id: ID of user to block
+        blocker_id: ID of user who is blocking (from query param)
+    """
+    try:
+        # Check if both users exist
+        blocker = db.query(Tenant).filter(Tenant.id == blocker_id).first()
+        blocked = db.query(Tenant).filter(Tenant.id == blocked_id).first()
+        
+        if not blocker or not blocked:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check if already blocked
+        existing_block = db.query(BlockedUser).filter(
+            or_(
+                and_(BlockedUser.blocker_id == blocker_id, BlockedUser.blocked_id == blocked_id),
+                and_(BlockedUser.blocker_id == blocked_id, BlockedUser.blocked_id == blocker_id)
+            )
+        ).first()
+        
+        if existing_block:
+            return {
+                "status": "success",
+                "message": "User already blocked",
+                "blocked": True
+            }
+        
+        # Create block record
+        block_record = BlockedUser(
+            blocker_id=blocker_id,
+            blocked_id=blocked_id
+        )
+        db.add(block_record)
+        db.commit()
+        
+        print(f"🚫 User {blocker_id} blocked user {blocked_id}")
+        
+        return {
+            "status": "success",
+            "message": "User blocked successfully",
+            "blocked": True
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error blocking user: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to block user: {str(e)}")
+
+
+@router.post("/unblock/{blocked_id}")
+async def unblock_user(
+    blocked_id: int,
+    blocker_id: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Unblock a previously blocked user
+    
+    Args:
+        blocked_id: ID of user to unblock
+        blocker_id: ID of user who is unblocking (from query param)
+    """
+    try:
+        # Find block record
+        block_record = db.query(BlockedUser).filter(
+            or_(
+                and_(BlockedUser.blocker_id == blocker_id, BlockedUser.blocked_id == blocked_id),
+                and_(BlockedUser.blocker_id == blocked_id, BlockedUser.blocked_id == blocker_id)
+            )
+        ).first()
+        
+        if not block_record:
+            return {
+                "status": "success",
+                "message": "User is not blocked",
+                "blocked": False
+            }
+        
+        # Delete block record
+        db.delete(block_record)
+        db.commit()
+        
+        print(f"✅ User {blocker_id} unblocked user {blocked_id}")
+        
+        return {
+            "status": "success",
+            "message": "User unblocked successfully",
+            "blocked": False
+        }
+    except Exception as e:
+        print(f"❌ Error unblocking user: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to unblock user: {str(e)}")
+
+
+@router.get("/blocked/list/{user_id}")
+async def get_blocked_users(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get list of users blocked by a user
+    
+    Args:
+        user_id: ID of user to get blocked list for
+    """
+    try:
+        # Get all blocked users
+        blocked_records = db.query(BlockedUser).filter(
+            BlockedUser.blocker_id == user_id
+        ).all()
+        
+        blocked_list = []
+        for block in blocked_records:
+            blocked_user = db.query(Tenant).filter(Tenant.id == block.blocked_id).first()
+            if blocked_user:
+                blocked_list.append({
+                    "id": blocked_user.id,
+                    "name": blocked_user.name,
+                    "email": blocked_user.email,
+                    "phone": blocked_user.phone,
+                    "blocked_at": block.blocked_at.isoformat() if block.blocked_at else None
+                })
+        
+        return {
+            "status": "success",
+            "count": len(blocked_list),
+            "blocked_users": blocked_list
+        }
+    except Exception as e:
+        print(f"❌ Error getting blocked users: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to get blocked users: {str(e)}")

@@ -38,7 +38,7 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
   Future<void> _loadBlockedUsers() async {
     try {
       final response = await http.get(
-        Uri.parse('http://$_serverIp:8000/api/chat/v3/blocked/list/${widget.tenantId}'),
+        Uri.parse('https://$_serverIp/api/chat/v3/blocked/list/${widget.tenantId}'),
       );
 
       if (response.statusCode == 200) {

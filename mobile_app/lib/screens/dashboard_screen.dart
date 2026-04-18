@@ -197,7 +197,13 @@ class DashboardScreen extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => ChatScreen(tenantId: tenantId)),
+                  MaterialPageRoute(
+                    builder: (_) => ChatScreen(
+                      tenantId: tenantId,
+                      receiverId: '0',  // Manager/Owner ID
+                      receiverName: 'Building Manager',
+                    ),
+                  ),
                 );
               },
             ),
@@ -210,7 +216,13 @@ class DashboardScreen extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => VoiceCallScreen(tenantId: tenantId, channelName: 'voice_$tenantId', receiverId: '0')),
+                  MaterialPageRoute(
+                    builder: (_) => VoiceCallScreen(
+                      tenantId: tenantId,
+                      channelName: 'voice_${tenantId}_manager',
+                      receiverId: '0',  // Manager ID
+                    ),
+                  ),
                 );
               },
             ),
@@ -223,7 +235,12 @@ class DashboardScreen extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => RealVideoCallScreen(tenantId: tenantId)),
+                  MaterialPageRoute(
+                    builder: (_) => RealVideoCallScreen(
+                      tenantId: tenantId,
+                      receiverId: '0',  // Manager ID
+                    ),
+                  ),
                 );
               },
             ),

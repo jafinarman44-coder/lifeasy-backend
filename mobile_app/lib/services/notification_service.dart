@@ -25,7 +25,7 @@ class NotificationService {
     _deviceToken = deviceToken;
 
     try {
-      final url = Uri.parse('http://192.168.0.119:8000/api/notifications/register');
+      final url = Uri.parse('https://lifeasy-backend-production.up.railway.app/api/notifications/register');
       await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -59,7 +59,7 @@ class NotificationService {
     }
 
     try {
-      final url = Uri.parse('http://192.168.0.119:8000/api/notifications/subscribe');
+      final url = Uri.parse('https://lifeasy-backend-production.up.railway.app/api/notifications/subscribe');
       await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -81,7 +81,7 @@ class NotificationService {
     }
 
     try {
-      final url = Uri.parse('http://192.168.0.119:8000/api/notifications/unsubscribe');
+      final url = Uri.parse('https://lifeasy-backend-production.up.railway.app/api/notifications/unsubscribe');
       await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -103,7 +103,7 @@ class NotificationService {
     }
 
     try {
-      final url = Uri.parse('http://192.168.0.119:8000/api/notifications/history/$_tenantId');
+      final url = Uri.parse('https://lifeasy-backend-production.up.railway.app/api/notifications/history/$_tenantId');
       final response = await http.get(url);
       
       if (response.statusCode == 200) {
@@ -120,7 +120,7 @@ class NotificationService {
   // Mark notification as read
   Future<void> markAsRead(String notificationId) async {
     try {
-      final url = Uri.parse('http://192.168.0.119:8000/api/notifications/$notificationId/read');
+      final url = Uri.parse('https://lifeasy-backend-production.up.railway.app/api/notifications/$notificationId/read');
       await http.put(url);
     } catch (e) {
       print('Failed to mark as read: $e');
