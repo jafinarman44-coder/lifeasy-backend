@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'dart:async';
 import '../services/call_socket_manager.dart';
 
@@ -30,7 +32,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
   Timer? _timer;
   final CallSocketManager _callSocket = CallSocketManager();
   
-  final String _appId = '8824dd55d0ce44c2873fa74acc730c5b';
+  // AGORA CREDENTIALS (from backend .env)
+  final String _appId = '937aca389d5843e4be2cafde36650adf';
+  final String _appCertificate = 'eaf84252500d48a78858233a95eb8ade';
 
   @override
   void initState() {
@@ -103,6 +107,21 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
         }
       }
 
+      // Get token from backend (since certificate is enabled)
+      String token = '';
+      try {
+        final response = await http.get(
+          Uri.parse('https://lifeasy-backend-production.up.railway.app/api/agora/token/${widget.channelName}/${widget.tenantId}'),
+        );
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          token = data['token'] ?? '';
+          print('✅ Token obtained from backend');
+        }
+      } catch (e) {
+        print('⚠️ Failed to get token, using empty token: $e');
+      }
+
       // Initialize Agora engine
       _engine = createAgoraRtcEngine();
       await _engine.initialize(RtcEngineContext(
@@ -169,7 +188,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
 
       // Join channel with proper options
       await _engine.joinChannel(
-        token: '', // Empty token for testing (use in production)
+        token: token, // Use token from backend (or empty if cert disabled)
         channelId: widget.channelName,
         uid: int.parse(widget.tenantId),
         options: const ChannelMediaOptions(

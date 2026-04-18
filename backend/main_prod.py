@@ -66,6 +66,7 @@ try:
     from routers.media_router import router as media_router
     from routers.otp_payment_router import router as otp_payment_router
     from routers.agora_router import router as agora_router
+    from routers.agora_token_router import router as agora_token_router
     
     print("✅ All routers imported successfully")
     
@@ -93,6 +94,7 @@ try:
     app.include_router(media_router)  # Has /api/media
     app.include_router(otp_payment_router)  # Has /api for OTP and payments
     app.include_router(agora_router)  # Has /api/agora for video call tokens
+    app.include_router(agora_token_router)  # Has /api/agora for token generation
     
     print("✅ All routers registered")
     

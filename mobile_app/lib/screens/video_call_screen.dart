@@ -28,8 +28,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   int callDuration = 0;
   Timer? _timer;
   
-  // AGORA APP ID - Replace with your actual App ID
-  final String _appId = '8824dd55d0ce44c2873fa74acc730c5b';
+  // AGORA APP ID - From backend .env file
+  final String _appId = '937aca389d5843e4be2cafde36650adf';
+  final String _appCertificate = 'eaf84252500d48a78858233a95eb8ade';
 
   @override
   void initState() {

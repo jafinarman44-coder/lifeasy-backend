@@ -18,7 +18,8 @@ class RealVideoCallScreen extends StatefulWidget {
 }
 
 class _RealVideoCallScreenState extends State<RealVideoCallScreen> {
-  static const String appId = "8824dd55d0ce44c2873fa74acc730c5b"; // Your Agora App ID
+  static const String appId = "937aca389d5843e4be2cafde36650adf"; // From backend .env
+  static const String appCertificate = "eaf84252500d48a78858233a95eb8ade"; // Certificate enabled
   static const String token = ""; // Token can be empty for testing
   static const String channelName = "video-call-channel";
   
