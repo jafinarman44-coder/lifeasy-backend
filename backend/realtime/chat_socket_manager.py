@@ -48,7 +48,8 @@ class ChatSocketManager:
     
     async def connect(self, user_id: int, building_id: int, ws: WebSocket, db: Session):
         """Accept new WebSocket connection and set user online"""
-        await ws.accept()
+        # NOTE: ws.accept() is already called in the router, don't call it again here
+        
         self.active_connections[user_id] = ws
         
         # Update presence to online
