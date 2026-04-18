@@ -25,7 +25,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   final List<Map<String, dynamic>> _messages = [];
   bool _isLoading = false;
   WebSocketChannel? _channel;
-  String _serverIp = '192.168.43.219';
+  String _serverIp = 'lifeasy-backend-production.up.railway.app';
 
   @override
   void initState() {

@@ -134,7 +134,7 @@ class NotificationService {
     }
 
     try {
-      final url = Uri.parse('http://192.168.43.219:8000/api/notifications/clear/$_tenantId');
+      final url = Uri.parse('https://lifeasy-backend-production.up.railway.app/api/notifications/clear/$_tenantId');
       await http.delete(url);
       print('All notifications cleared');
     } catch (e) {

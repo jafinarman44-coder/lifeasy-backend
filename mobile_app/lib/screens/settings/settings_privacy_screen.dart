@@ -17,7 +17,7 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
   String _profilePhotoVisibility = 'Everyone';
   bool _readReceipts = true;
   List<String> _blockedUsers = [];
-  String _serverIp = '192.168.43.219';
+  String _serverIp = 'lifeasy-backend-production.up.railway.app';
 
   @override
   void initState() {

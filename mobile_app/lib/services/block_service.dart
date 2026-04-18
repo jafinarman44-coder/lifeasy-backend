@@ -8,7 +8,7 @@ class BlockService {
 
   String? _serverIp;
   
-  void initialize({String serverIp = '192.168.43.219'}) {
+  void initialize({String serverIp = 'lifeasy-backend-production.up.railway.app'}) {
     _serverIp = serverIp;
   }
 

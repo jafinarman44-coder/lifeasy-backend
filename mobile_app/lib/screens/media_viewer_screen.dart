@@ -84,7 +84,7 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
     final bool isLocal = File(widget.filePath).isAbsolute;
     final ImageProvider imageProvider = isLocal 
         ? FileImage(File(widget.filePath))
-        : NetworkImage('http://192.168.43.219:8000/${widget.filePath}') as ImageProvider;
+        : NetworkImage('https://lifeasy-backend-production.up.railway.app/${widget.filePath}') as ImageProvider;
     
     return PhotoView(
       imageProvider: imageProvider,

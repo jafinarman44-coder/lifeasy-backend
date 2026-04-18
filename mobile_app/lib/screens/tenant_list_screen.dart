@@ -34,7 +34,7 @@ class _TenantListScreenState extends State<TenantListScreen> {
 
     try {
       // Replace with your actual server IP
-      final url = Uri.parse('http://192.168.43.219:8000/api/tenants/all?include_offline=true');
+      final url = Uri.parse('https://lifeasy-backend-production.up.railway.app/api/tenants/all?include_offline=true');
       
       final response = await http.get(
         url,

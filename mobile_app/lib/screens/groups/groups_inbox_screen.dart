@@ -16,7 +16,7 @@ class GroupsInboxScreen extends StatefulWidget {
 class _GroupsInboxScreenState extends State<GroupsInboxScreen> {
   List<dynamic> _groups = [];
   bool _isLoading = false;
-  String _serverIp = '192.168.43.219';
+  String _serverIp = 'lifeasy-backend-production.up.railway.app';
 
   @override
   void initState() {

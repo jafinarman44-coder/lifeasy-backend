@@ -19,7 +19,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   List<Tenant> _allTenants = [];
   final List<String> _selectedMemberIds = [];
   bool _isLoading = false;
-  String _serverIp = '192.168.43.219';
+  String _serverIp = 'lifeasy-backend-production.up.railway.app';
 
   @override
   void initState() {

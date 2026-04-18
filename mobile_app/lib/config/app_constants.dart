@@ -4,20 +4,20 @@
 class AppConstants {
   // ==================== BACKEND URLs ====================
   
-  // LOCAL TESTING (Your Computer - ACTIVE NOW)
-  static const String backendHost = '192.168.43.219';
-  static const int backendPort = 8000;
+  // PRODUCTION BACKEND (Railway - For users on DIFFERENT networks)
+  static const String backendHost = 'lifeasy-backend-production.up.railway.app';
+  static const int backendPort = 8080;
   
-  // PRODUCTION BACKEND (Railway - Commented out for testing)
+  // LOCAL TESTING (Comment out when deploying)
   // static const String backendHost = 'lifeasy-backend-production.up.railway.app';
-  // static const int backendPort = 8080;
+  // static const int backendPort = 8000;
   
   // Full API URL
-  static const String baseUrl = 'http://$backendHost:$backendPort/api';  // HTTP for local
+  static const String baseUrl = 'https://$backendHost/api';  // HTTPS for production
   
   // WebSocket URLs
-  static const String wsProtocol = 'ws';  // WebSocket for local (not WSS)
-  static const String wsBaseUrl = '$wsProtocol://$backendHost:$backendPort';
+  static const String wsProtocol = 'wss';  // Secure WebSocket for production
+  static const String wsBaseUrl = '$wsProtocol://$backendHost';
   
   // ==================== API ENDPOINTS ====================
   

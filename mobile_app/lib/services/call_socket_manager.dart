@@ -30,10 +30,10 @@ class CallSocketManager {
 
     try {
       _tenantId = tenantId;
-      _serverIp = serverIp ?? '192.168.43.219';
+      _serverIp = serverIp ?? 'lifeasy-backend-production.up.railway.app';
       
       // CRITICAL FIX: Use correct WebSocket protocol for Render
-      // Production: ws://192.168.43.219:8000 (no port)
+      // Production: wss://lifeasy-backend-production.up.railway.app (no port)
       // Local: ws://localhost:8000 (with port)
       final isProduction = _serverIp!.contains('onrender.com');
       final protocol = isProduction ? 'wss' : 'ws';
