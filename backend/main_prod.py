@@ -117,6 +117,71 @@ async def startup_event():
         
         init_db()
         print("✅ Database initialized successfully!")
+        
+        # AUTO-MIGRATION: Fix blocked_users table schema
+        from sqlalchemy import text
+        from database_prod import engine
+        
+        print("\n🔧 Checking blocked_users table schema...")
+        
+        with engine.connect() as conn:
+            # Check current columns
+            result = conn.execute(text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'blocked_users'
+            """))
+            columns = [row[0] for row in result.fetchall()]
+            
+            print(f"   Current columns: {columns}")
+            
+            # Rename columns if needed
+            if 'user_id' in columns and 'blocker_id' not in columns:
+                print("   ✏️ Renaming 'user_id' → 'blocker_id'...")
+                conn.execute(text("""
+                    ALTER TABLE blocked_users 
+                    RENAME COLUMN user_id TO blocker_id
+                """))
+                conn.commit()
+                print("   ✅ Renamed!")
+            
+            if 'blocked_user_id' in columns and 'blocked_id' not in columns:
+                print("   ✏️ Renaming 'blocked_user_id' → 'blocked_id'...")
+                conn.execute(text("""
+                    ALTER TABLE blocked_users 
+                    RENAME COLUMN blocked_user_id TO blocked_id
+                """))
+                conn.commit()
+                print("   ✅ Renamed!")
+            
+            # Add blocked_at if missing
+            if 'blocked_at' not in columns:
+                print("   ➕ Adding blocked_at column...")
+                conn.execute(text("""
+                    ALTER TABLE blocked_users 
+                    ADD COLUMN IF NOT EXISTS blocked_at TIMESTAMP DEFAULT NOW()
+                """))
+                conn.commit()
+                print("   ✅ Added!")
+            
+            # Create indexes
+            print("   📊 Creating indexes...")
+            conn.execute(text("DROP INDEX IF EXISTS idx_blocked_blocker_id"))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_blocked_blocker_id 
+                ON blocked_users(blocker_id)
+            """))
+            conn.commit()
+            
+            conn.execute(text("DROP INDEX IF EXISTS idx_blocked_blocked_id"))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS idx_blocked_blocked_id 
+                ON blocked_users(blocked_id)
+            """))
+            conn.commit()
+            
+            print("   ✅ Schema check complete!\n")
+        
         print("✅ Backend ready!")
         print("="*80 + "\n")
     except Exception as e:
